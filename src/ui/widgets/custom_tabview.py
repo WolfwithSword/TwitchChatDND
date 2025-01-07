@@ -6,10 +6,9 @@ from ui.widgets.custom_segmentedbutton import CTkSegmentedButton
 
 
 class CTkTabview(CTkBaseClass):
-    """
-    Tabview...
-    For detailed information check out the documentation.
-    """
+    
+    # Tabview...
+    # For detailed information check out the documentation.
 
     _outer_spacing: int = 10  # px on top or below the button
     _outer_button_overhang: int = 8  # px
@@ -105,10 +104,8 @@ class CTkTabview(CTkBaseClass):
             self._command()
 
     def winfo_children(self) -> List[any]:
-        """
-        winfo_children of CTkTabview without canvas and segmented button widgets,
-        because it's not a child but part of the CTkTabview itself
-        """
+        # winfo_children of CTkTabview without canvas and segmented button widgets,
+        # because it's not a child but part of the CTkTabview itself
 
         child_widgets = super().winfo_children()
         try:
@@ -134,7 +131,7 @@ class CTkTabview(CTkBaseClass):
         self._draw()
 
     def _configure_segmented_button_background_corners(self):
-        """ needs to be called for changes in fg_color, bg_color """
+        # needs to be called for changes in fg_color, bg_color #
 
         if self._fg_color == "transparent":
             self._segmented_button.configure(background_corner_colors=(self._bg_color, self._bg_color, self._bg_color, self._bg_color))
@@ -145,7 +142,7 @@ class CTkTabview(CTkBaseClass):
                 self._segmented_button.configure(background_corner_colors=(self._fg_color, self._fg_color, self._bg_color, self._bg_color))
 
     def _configure_grid(self):
-        """ create 3 x 4 grid system """
+        # create 3 x 4 grid system #
 
         if self._anchor.lower() in ("center", "w", "nw", "n", "ne", "e", "e"):
             self.grid_rowconfigure(0, weight=0, minsize=self._apply_widget_scaling(self._outer_spacing))
@@ -167,7 +164,7 @@ class CTkTabview(CTkBaseClass):
             self._canvas.grid(row=0, rowspan=2, column=0, columnspan=1, sticky="nsew")
 
     def _set_grid_segmented_button(self):
-        """ needs to be called for changes in corner_radius, anchor """
+        # needs to be called for changes in corner_radius, anchor #
 
         if self._anchor.lower() in ("center", "n", "s"):
             self._segmented_button.grid(row=1, rowspan=2, column=0, columnspan=1, padx=self._apply_widget_scaling(self._corner_radius), sticky="ns")
@@ -177,7 +174,7 @@ class CTkTabview(CTkBaseClass):
             self._segmented_button.grid(row=1, rowspan=2, column=0, columnspan=1, padx=self._apply_widget_scaling(self._corner_radius), sticky="nse")
 
     def _set_grid_current_tab(self):
-        """ needs to be called for changes in corner_radius, border_width """
+        # needs to be called for changes in corner_radius, border_width #
         if self._anchor.lower() in ("center", "w", "nw", "n", "ne", "e", "e"):
             self._tab_dict[self._current_name].grid(row=3, column=0, sticky="nsew",
                                                     padx=self._apply_widget_scaling(max(self._corner_radius, self._border_width)),
@@ -313,7 +310,7 @@ class CTkTabview(CTkBaseClass):
             return super().cget(attribute_name)
 
     def tab(self, name: str) -> CTkFrame:
-        """ returns reference to the tab with given name """
+        # returns reference to the tab with given name #
 
         if name in self._tab_dict:
             return self._tab_dict[name]
@@ -321,7 +318,7 @@ class CTkTabview(CTkBaseClass):
             raise ValueError(f"CTkTabview has no tab named '{name}'")
 
     def insert(self, index: int, name: str) -> CTkFrame:
-        """ creates new tab with given name at position index """
+        # creates new tab with given name at position index #
 
         if name not in self._tab_dict:
             # if no tab exists, set grid for segmented button
@@ -344,11 +341,11 @@ class CTkTabview(CTkBaseClass):
             raise ValueError(f"CTkTabview already has tab named '{name}'")
 
     def add(self, name: str) -> CTkFrame:
-        """ appends new tab with given name """
+        # appends new tab with given name #
         return self.insert(len(self._tab_dict), name)
 
     def index(self, name) -> int:
-        """ get index of tab with given name """
+        # get index of tab with given name #
         return self._segmented_button.index(name)
 
     def move(self, new_index: int, name: str):
@@ -377,7 +374,7 @@ class CTkTabview(CTkBaseClass):
         self._tab_dict[new_name] = self._tab_dict.pop(old_name)
 
     def delete(self, name: str):
-        """ delete tab by name """
+        # delete tab by name #
 
         if name in self._tab_dict:
             self._name_list.remove(name)
@@ -406,7 +403,7 @@ class CTkTabview(CTkBaseClass):
             raise ValueError(f"CTkTabview has no tab named '{name}'")
 
     def set(self, name: str):
-        """ select tab by name """
+        # select tab by name #
 
         if name in self._tab_dict:
             self._current_name = name
@@ -417,5 +414,5 @@ class CTkTabview(CTkBaseClass):
             raise ValueError(f"CTkTabview has no tab named '{name}'")
 
     def get(self) -> str:
-        """ returns name of selected tab, returns empty string if no tab selected """
+        # returns name of selected tab, returns empty string if no tab selected #
         return self._current_name

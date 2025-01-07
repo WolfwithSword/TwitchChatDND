@@ -35,7 +35,6 @@ class ServerApp():
     
         @self.app.websocket("/tts")
         async def audio_stream():
-            """WebSocket route to stream audio bytes."""
             clients.add(websocket) 
             try:
                 logger.debug("ws opened")

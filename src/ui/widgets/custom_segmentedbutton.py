@@ -10,7 +10,7 @@ from customtkinter import ThemeManager, CTkFont, CTkButton,CTkFrame
 
 
 def check_kwargs_empty(kwargs_dict, raise_error=False) -> bool:
-    """ returns True if kwargs are empty, False otherwise, raises error if not empty """
+    # returns True if kwargs are empty, False otherwise, raises error if not empty
 
     if len(kwargs_dict) > 0:
         if raise_error:
@@ -21,10 +21,10 @@ def check_kwargs_empty(kwargs_dict, raise_error=False) -> bool:
         return False
 
 class CTkSegmentedButton(CTkFrame):
-    """
-    Segmented button with corner radius, border width, variable support.
-    For detailed information check out the documentation.
-    """
+    #
+    # Segmented button with corner radius, border width, variable support.
+    # For detailed information check out the documentation.
+    #
 
     def __init__(self,
                  master: any,
@@ -180,7 +180,7 @@ class CTkSegmentedButton(CTkFrame):
 
     @staticmethod
     def _check_unique_values(values: List[str]):
-        """ raises exception if values are not unique """
+        # raises exception if values are not unique 
         if len(values) != len(set(values)):
             raise ValueError("CTkSegmentedButton values are not unique")
 

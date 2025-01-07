@@ -13,6 +13,6 @@ logging.getLogger("sqlalchemy.engine").handlers = logger.handlers
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 async def initialize_database():
-    """Initialize the database and create tables."""
+    #Initialize the database and create tables.#
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
