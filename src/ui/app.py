@@ -30,7 +30,7 @@ class DesktopApp(ctk.CTk):
         self.chat_ctrl = chat_ctrl
         self.title(f'Twitch Chat DND Manager - v.{app_version}')
 
-        icon_path = get_resource_path('../../images/logo.ico')
+        icon_path = get_resource_path('../images/logo.ico')
         self.iconbitmap(icon_path)
 
         self.geometry("1200x750")
