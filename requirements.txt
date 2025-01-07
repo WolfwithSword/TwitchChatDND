@@ -1,0 +1,7 @@
+diskcache==5.6.3
+pyttsx4==3.0.15
+twitchAPI==4.4.0
+customtkinter==5.2.2
+Quart==0.20.0
+SQLAlchemy==2.0.36
+aiosqlite==0.20.0

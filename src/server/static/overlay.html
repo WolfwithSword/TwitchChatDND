@@ -1,0 +1,143 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Overlay</title>
+</head>
+<body>
+    <h1>Audio Overlay</h1> <!-- Temp - TODO: remove this but add in fancy placeholder templates for eventually an active party with pfps that highlight and TTS text popups -->
+
+    <script>
+        let audioContext;
+        let isPlaying = false;
+        const audioQueue = [];
+        let ws;
+        let reconnectInterval = 5000;
+        let reconnectTimeout = null;
+
+        function initializeAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log("AudioContext initialized");
+            }
+        }
+
+        // Fix for local dev - click on the browser page to make audio work
+        try {
+            initializeAudioContext();
+        } catch (error) {
+            console.log("AudioContext could not be initialized automatically:", error);
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(() => {
+                    try {
+                        initializeAudioContext();
+                    } catch (error) {
+                        console.error("Failed to initialize AudioContext after idle callback:", error);
+                    }
+                });
+            } else {
+                window.addEventListener('load', initializeAudioContext);
+            }
+        }
+
+        // Fix for local dev - click on the browser page to make audio work
+        document.addEventListener('click', () => {
+            if (!audioContext) {
+                initializeAudioContext();
+            }
+        });
+
+
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}/tts`);
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+
+            ws.onmessage = function (event) {
+                let arrayBuffer;
+
+                if (event.data instanceof ArrayBuffer) {
+                    arrayBuffer = event.data;
+                } else if (typeof event.data === "string") {
+                    const encoder = new TextEncoder();
+                    arrayBuffer = encoder.encode(event.data).buffer;
+                } else {
+                    console.error("Unsupported data type received:", typeof event.data);
+                    return;
+                }
+                handleAudioData(arrayBuffer);
+            };
+
+            ws.onerror = (error) => {
+                console.log('WebSocket Error: ' + error);
+                console.log({error})
+                ws = null;
+                attemptReconnect(); 
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket closed. Attempting to reconnect...');
+                ws = null;
+                attemptReconnect(); 
+            };
+        }
+
+
+        function handleAudioData(arrayBuffer) {
+            if (!(arrayBuffer instanceof ArrayBuffer)) {
+                return;
+            }
+            audioContext.decodeAudioData(arrayBuffer)
+                .then((audioBuffer) => {
+                    audioQueue.push(audioBuffer); 
+                    if (!isPlaying) {
+                        playFromQueue(); 
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error decoding audio data:", error);
+                });
+        }
+
+
+        function playFromQueue() {
+            if (audioQueue.length > 0 && !isPlaying) {
+                const audioBuffer = audioQueue.shift();
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+
+                source.onended = () => {
+                    isPlaying = false;
+                    if (audioQueue.length > 0) {
+                        playFromQueue(); // next chunk
+                    }
+                    else {
+                        source.buffer = null;
+                    }
+                };
+
+                source.start(audioContext.currentTime);
+                isPlaying = true;
+            }
+        }
+
+        function attemptReconnect() {
+            if (reconnectTimeout) {
+                return;
+            }
+
+            reconnectTimeout = setTimeout(() => {
+                console.log('Attempting to reconnect WebSocket...');
+                connectWebSocket();
+                reconnectTimeout = null;
+            }, reconnectInterval);
+        }
+
+        connectWebSocket();
+    </script>
+</body>
+</html>
