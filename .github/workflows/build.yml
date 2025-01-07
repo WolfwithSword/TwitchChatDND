@@ -58,12 +58,12 @@ jobs:
       - name: Build with pyinstaller
         if: true && !startsWith(github.ref, 'refs/tags/')
         #run: pyinstaller --icon=images/logo.ico --onefile --add-data "images;images" --add-data "src/server/static;server/static" --distpath dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/ --name=twitchchatdnd-nightly src/main.py
-        run: pyinstaller --icon=images/logo.ico --onefile --strip --distpath dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/ --name=twitchchatdnd-nightly src/main.py
-
+        run: pyinstaller --icon=images/logo.ico --onefile --collect-binaries python312.dll --distpath dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/ --name=twitchchatdnd-nightly src/main.py
+        
       - name: Release Build with pyinstaller
         if: startsWith(github.ref, 'refs/tags/')
         #run: pyinstaller --icon=images/logo.ico --onefile --add-data "images;images" --add-data "src/server/static;server/static" --distpath dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/ --name=twitchchatdnd src/main.py
-        run: pyinstaller --icon=images/logo.ico --onefile --strip --distpath dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/ --name=twitchchatdnd src/main.py
+        run: pyinstaller --icon=images/logo.ico --onefile --collect-binaries python312.dll --distpath dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/ --name=twitchchatdnd src/main.py
       
       - name: Copy Resources
         run: |
