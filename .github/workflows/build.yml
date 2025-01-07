@@ -65,10 +65,10 @@ jobs:
         #run: pyinstaller --icon=images/logo.ico --onefile --add-data "images;images" --add-data "src/server/static;server/static" --distpath dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/ --name=twitchchatdnd src/main.py
         run: pyinstaller --icon=src/images/logo.ico --onefile --collect-binaries python312.dll --hidden-import=aiosqlite --distpath dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/ --name=twitchchatdnd src/main.py
       
-      - name: Copy Resources
-        run: |
-          mkdir dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/images
-          mv images/* dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/images
+      # - name: Copy Resources
+      #   run: |
+      #     mkdir dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/images
+      #     mv images/* dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/images
 
       - name: Deploy Artifacts
         uses: actions/upload-artifact@v4
