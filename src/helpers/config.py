@@ -1,5 +1,8 @@
 import configparser
+import base64
 
+# ID is fine to ship
+_client_id = base64.b64decode("dXp4NXFiOXNzZXl0dGtvZXF5cXdydmthOGdic3Br").decode('utf-8')
 
 class TCDNDConfig(configparser.ConfigParser):
 
@@ -49,12 +52,6 @@ class TCDNDConfig(configparser.ConfigParser):
         if not self.has_option(section="TWITCH", option="channel"):
             needs_init = True
             self.set(section="TWITCH", option="channel", value="")
-        if not self.has_option(section="TWITCH", option="client_id"):
-            needs_init = True
-            self.set(section="TWITCH", option="client_id", value="")
-        if not self.has_option(section="TWITCH", option="client_secret"):
-            needs_init = True
-            self.set(section="TWITCH", option="client_secret", value="")
 
         if not self.has_section("DND"):
             needs_init = True
@@ -68,11 +65,7 @@ class TCDNDConfig(configparser.ConfigParser):
 
     @property
     def twitch_auth(self) -> tuple[str, str]:
-        client_id = self.get(section='TWITCH', option='client_id', fallback='')
-        client_secret = self.get(section='TWITCH', option='client_secret', fallback='')
-        if client_id == '' or client_secret == '':
-            return None, None
-        return client_id.strip(), client_secret.strip()
+        return _client_id.strip()
 
     @property
     def cache_enabled(self) -> bool:
