@@ -69,7 +69,11 @@ jobs:
         run: |
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/images
+          mkdir dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/server
+          mkdir dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/server/static
           mv images/* dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/images
+          mv server/static/* dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/server/static
+
 
       - name: Deploy Artifacts
         uses: actions/upload-artifact@v4

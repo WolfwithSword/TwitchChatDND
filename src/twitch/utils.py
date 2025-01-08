@@ -55,10 +55,10 @@ class TwitchUtils:
             helper = UserAuthenticationStorageHelper(self.twitch, SCOPES, auth_generator_func=self._token_gen)
             await helper.bind()
         except:
-            twitchutils_twitch_on_connect_event.trigger([False])
+            twitchutils_twitch_on_connect_event.trigger([False, None])
             raise
         logger.info("Twitch connected")
-        twitchutils_twitch_on_connect_event.trigger([True])
+        twitchutils_twitch_on_connect_event.trigger([True, self])
 
 
     async def get_user_by_name(self, username: str):

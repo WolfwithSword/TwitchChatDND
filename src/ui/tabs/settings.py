@@ -134,7 +134,7 @@ class SettingsTab():
         ui_settings_bot_settings_update_event.trigger()
 
 
-    def _update_twitch_connect(self, status: bool):
+    def _update_twitch_connect(self, status: bool, twitchutils = None):
         if status:
             self.t_con_label.configure(text="Connected", text_color="green")
         else:

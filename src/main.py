@@ -84,6 +84,7 @@ async def run_twitch_bot():
             if chat.channel:
                 return True
             # await chat.start(twitch_utils)
+            
             ui_settings_twitch_channel_update_event.trigger([twitch_utils])
             await asyncio.sleep(4)
             if chat.channel:
