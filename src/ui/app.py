@@ -23,6 +23,9 @@ class DesktopApp(ctk.CTk):
     
     def __init__(self, session_mgr: SessionManager, chat_ctrl: ChatController, config: Config, twitch_utils: TwitchUtils):
         super().__init__()
+        self.running = True
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+        
         self.resizable(False, False)
         self.config:Config = config
         self.twitch_utils = twitch_utils
@@ -53,4 +56,9 @@ class DesktopApp(ctk.CTk):
 
     def button_callback(self):
         logger.info("Test")
+
+    def on_close(self):
+        logger.info("Shutting down...") 
+        self.running = False
+        self.destroy()
 

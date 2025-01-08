@@ -1,8 +1,17 @@
-import os
+import os, sys
 
 import asyncio
 import threading
 import time
+import argparse
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run the application.")
+    parser.add_argument('--debug', action='store_true', help="Enable debug logging level.")
+    return parser.parse_args()
+
+args = parse_args()
+os.environ['TCDND_DEBUG_MODE'] = '1' if args.debug else '0'
 
 from twitch.utils import TwitchUtils
 from twitch.chat import ChatController
@@ -14,11 +23,10 @@ from server.app import ServerApp
 
 from _version import __version__
 
-from custom_logger.logger import logger
 from chatdnd import SessionManager
-
 from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_settings_twitch_channel_update_event
 
+from custom_logger.logger import logger
 from db import initialize_database
 
 cwd = os.getcwd()
@@ -35,6 +43,7 @@ chat: ChatController = ChatController(session_mgr, config)
 
 server = ServerApp(config)
 
+APP_RUNNING = True
 
 async def run_twitch():
 
@@ -60,7 +69,7 @@ async def run_twitch():
         success = await try_setup()
         await asyncio.sleep(1)
     try:
-        while True:
+        while APP_RUNNING:
             await asyncio.sleep(0.5)
     except (KeyboardInterrupt, Exception):
         pass
@@ -97,7 +106,7 @@ async def run_twitch_bot():
         success = await try_channel()
         await asyncio.sleep(1)
     try:
-        while True:
+        while APP_RUNNING:
             await asyncio.sleep(0.5)
     except (KeyboardInterrupt, Exception):
         pass
@@ -114,9 +123,12 @@ async def run_server():
 
 async def run_ui():
     app = DesktopApp(session_mgr, chat, config, twitch_utils)
-    while True:
+    while app.running:
         await asyncio.sleep(0.05)
         app.update()
+    APP_RUNNING = False
+    await asyncio.sleep(2)
+    sys.exit(0)
     # app.mainloop()
 
 async def run_all():
