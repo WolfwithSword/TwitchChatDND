@@ -1,6 +1,6 @@
 import os, sys
 
-def get_resource_path(relative_path, from_resources: bool):
+def get_resource_path(relative_path, from_resources: bool = False):
     # Get absolute path to a resource, frozen or local (relative to helpers/utils.py)
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS

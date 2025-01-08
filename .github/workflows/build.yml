@@ -117,6 +117,7 @@ jobs:
   
       - name: Release nightly
         uses: softprops/action-gh-release@v2
+        if: true && startsWith(github.ref_name, 'main')
         with:
           token: ${{ secrets.TCDND_GITHUB_TOKEN }}
           prerelease: true
