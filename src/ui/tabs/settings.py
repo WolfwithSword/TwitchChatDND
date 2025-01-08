@@ -174,4 +174,4 @@ class SettingsTab():
         self.chat_con_label.configure(text="Connecting...", text_color="yellow")
         self.config.write_updates()
         ui_settings_twitch_auth_update_event.trigger()
-        ui_settings_twitch_channel_update_event.trigger([self.twitch_utils, 5])
+        ui_settings_twitch_channel_update_event.trigger([True, self.twitch_utils, 5])

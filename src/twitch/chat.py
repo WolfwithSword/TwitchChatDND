@@ -34,11 +34,11 @@ class ChatController(Chat):
         twitchutils_twitch_on_connect_event.addListener(self.start)
 
 
-    async def start(self, status: bool, twitch_utils: TwitchUtils, wait_tries:int = 5):
+    async def start(self, status: bool=None, twitch_utils: TwitchUtils=None, wait_tries:int = 5):
         self.channel = None
         if not twitch_utils:
             raise Exception("Twitch instance is not instantiated")
-            
+
         self.twitch_utils = twitch_utils
         for i in range(wait_tries):
             await asyncio.sleep(i+1)
