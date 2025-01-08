@@ -5,6 +5,7 @@ def get_resource_path(relative_path, from_resources: bool = False):
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS
         if from_resources:
+            relative_path = relative_path.replace("../", "")
             base_path = os.path.join(os.path.abspath("."), "resources")
         else:
             if not os.path.isfile(os.path.join(base_path, relative_path)):
