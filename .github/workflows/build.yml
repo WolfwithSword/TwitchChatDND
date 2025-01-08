@@ -72,7 +72,7 @@ jobs:
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/server
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/server/static
           mv images/* dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/images
-          mv server/static/* dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/server/static
+          mv src/server/static/* dist/twitchchatdnd/${{ matrix.os }}-${{github.ref_name}}/resources/server/static
 
 
       - name: Deploy Artifacts
