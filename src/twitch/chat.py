@@ -17,6 +17,7 @@ from helpers import Event
 
 from chatdnd.events.ui_events import ui_settings_bot_settings_update_event, ui_settings_twitch_channel_update_event
 from chatdnd.events.chat_events import *
+from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_event
 
 class ChatController(Chat):
     def __init__(self, session_mgr: SessionManager, config: Config):
@@ -30,9 +31,14 @@ class ChatController(Chat):
         self.command_list = {}
 
         ui_settings_twitch_channel_update_event.addListener(self.start)
+        twitchutils_twitch_on_connect_event.addListener(self.start)
 
-    async def start(self, twitch_utils: TwitchUtils, wait_tries:int = 5):
+
+    async def start(self, status: bool=None, twitch_utils: TwitchUtils=None, wait_tries:int = 5):
         self.channel = None
+        if not twitch_utils:
+            raise Exception("Twitch instance is not instantiated")
+
         self.twitch_utils = twitch_utils
         for i in range(wait_tries):
             await asyncio.sleep(i+1)

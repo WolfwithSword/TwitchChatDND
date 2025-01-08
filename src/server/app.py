@@ -12,7 +12,7 @@ from chatdnd.events.chat_events import chat_say_command
 from helpers.utils import get_resource_path
 
 
-STATIC_DIR = get_resource_path("../server/static")
+STATIC_DIR = get_resource_path("../server/static", from_resources=True)
 message_queue = Queue()
 clients = set()
 
