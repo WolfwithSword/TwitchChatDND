@@ -51,10 +51,11 @@ class TwitchUtils:
         self.twitch = None
         SCOPES = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT] # TODO may need more as time goes on
         try:
-            self.twitch = await Twitch(*self.config.twitch_auth)
+            self.twitch = await Twitch(app_id=self.config.twitch_auth, authenticate_app=False)
             helper = UserAuthenticationStorageHelper(self.twitch, SCOPES, auth_generator_func=self._token_gen)
             await helper.bind()
-        except:
+        except Exception as e:
+            logger.error(e)
             twitchutils_twitch_on_connect_event.trigger([False, None])
             raise
         logger.info("Twitch connected")

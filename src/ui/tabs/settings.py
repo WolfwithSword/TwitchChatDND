@@ -22,64 +22,23 @@ class SettingsTab():
         row=0
         ######### Twitch ##########
         column=0
-        label = ctk.CTkLabel(self.parent, text="Twitch", font=header_font)
+        label = ctk.CTkLabel(self.parent, text="Twitch Bot", font=header_font)
         label.grid(row=row, column=column, padx=10, pady=(30,2), sticky="ew")
         column+=1
-        self.t_con_label = ctk.CTkLabel(self.parent, text="Disconnected", text_color="red")
+        self.t_con_label = ctk.CTkLabel(self.parent, text="Twitch Disconnected", text_color="red")
         self.t_con_label.grid(row=row, column=column, padx=10, pady=(30,2))
-        column=0
-        row+=1
-
-        button = ctk.CTkButton(self.parent,height=30, text="Save", command=self._update_twitch_auth)
-        button.grid(row=row, column=column, padx=10, pady=(20,10))
         column+=1
-        chan_label = ctk.CTkLabel(self.parent, text="Channel")
-        id_label = ctk.CTkLabel(self.parent, text="Client Id")
-        secret_label = ctk.CTkLabel(self.parent, text="Client Secret")
-        chan_label.grid(row=row, column=column, padx=(10,10), pady=(10,2))
-        column+=1
-        id_label.grid(row=row, column=column, padx=(10, 10), pady=(10,2))
-        column+=1
-        secret_label.grid(row=row, column=column, padx=(10, 10), pady=(10,2))
-        column+=1
-
-        row+=1
-        column=1
-        self.channel_var = ctk.StringVar(value=self.config.get(section="TWITCH", option="channel", fallback=""))
-        twitch_channel = ctk.CTkEntry(self.parent, width=180, height=30, border_width=1, fg_color="white", placeholder_text="Channel", text_color="black", textvariable=self.channel_var)
-        twitch_channel.configure(justify="center")
-        self.clientid_var = ctk.StringVar(value=self.config.get(section="TWITCH", option="client_id", fallback=""))
-        twitch_client_id = ctk.CTkEntry(self.parent, width=160, height=30, border_width=1, fg_color="white", placeholder_text="Client Id", text_color="black", textvariable=self.clientid_var)
-        self.clientsecret_var = ctk.StringVar(value=self.config.get(section="TWITCH", option="client_secret", fallback=""))
-        twitch_client_secret = ctk.CTkEntry(self.parent, width=160, height=30, border_width=1, fg_color="white", placeholder_text="Client Secret", text_color="black", show="*", textvariable=self.clientsecret_var)
-
-        twitch_channel.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
-        column+=1
-        twitch_client_id.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
-        column+=1
-        twitch_client_secret.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
-        
-
-        twitchutils_twitch_on_connect_event.addListener(self._update_twitch_connect)
-        chat_on_channel_fetch.addListener(self._update_twitch_channel)
-
-        ########################
-
-
-        ######### BOT ##########
-        row += 1
-        column = 0
-        label_bot = ctk.CTkLabel(self.parent, text="Bot", font=header_font)
-        label_bot.grid(row=row, column=column, padx=10, pady=(40,10), sticky="ew")  
-        column+=1
-        self.chat_con_label = ctk.CTkLabel(self.parent, text="Disconnected", text_color="red")
-        self.chat_con_label.grid(row=row, column=column, padx=10, pady=(40,2))
+        self.chat_con_label = ctk.CTkLabel(self.parent, text="Chat Disconnected", text_color="red")
+        self.chat_con_label.grid(row=row, column=column, padx=10, pady=(30,2))
         chat_bot_on_connect.addListener(self._update_bot_connection)
         column=0
         row+=1
-        bot_button = ctk.CTkButton(self.parent,height=30, text="Save", command=self._update_bot_settings)
-        bot_button.grid(row=row, column=column, padx=10, pady=(20,10))
 
+        button = ctk.CTkButton(self.parent,height=30, text="Save", command=self._update_bot_settings)
+        button.grid(row=row, column=column, padx=10, pady=(20,10))
+        column+=1
+        chan_label = ctk.CTkLabel(self.parent, text="Channel")
+        chan_label.grid(row=row, column=column, padx=(10,10), pady=(10,2))
         column+=1
         prefix_label = ctk.CTkLabel(self.parent, text="Command Prefix")
         prefix_label.grid(row=row, column=column, padx=(10,10), pady=(10,2))
@@ -92,8 +51,14 @@ class SettingsTab():
 
         row+=1
         column=1
+        self.channel_var = ctk.StringVar(value=self.config.get(section="TWITCH", option="channel", fallback=""))
+        twitch_channel = ctk.CTkEntry(self.parent, width=180, height=30, border_width=1, fg_color="white", placeholder_text="Channel", text_color="black", textvariable=self.channel_var)
+        twitch_channel.configure(justify="center")
+
+        twitch_channel.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
+        column+=1  
         self.prefix_var = ctk.StringVar(value=self.config.get(section="BOT", option="prefix", fallback='!').strip()[0])
-        prefix_options = ctk.CTkSegmentedButton(self.parent, values=['!', '~', '+', '&'], variable=self.prefix_var)#command=self._update_prefix)
+        prefix_options = ctk.CTkSegmentedButton(self.parent, values=['!', '~', '+', '&'], variable=self.prefix_var)
         prefix_options.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
         column += 1
         self.join_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="join_command", fallback=''))
@@ -105,6 +70,8 @@ class SettingsTab():
         speak_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white", placeholder_text="say", text_color="black", textvariable=self.speak_cmd_var)
         speak_cmd_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
         speak_cmd_entry.configure(justify="center")
+
+        twitchutils_twitch_on_connect_event.addListener(self._update_twitch_connect)
 
         ########################
 
@@ -127,51 +94,25 @@ class SettingsTab():
 
 
     def _update_bot_settings(self):
+        self.chat_con_label.configure(text="Chat Connecting...", text_color="yellow")
         self.config.set(section="BOT", option="prefix", value=str(self.prefix_var.get()))
         self.config.set(section="BOT", option="speak_command", value=self.speak_cmd_var.get().strip())
         self.config.set(section="BOT", option="join_command", value=self.join_cmd_var.get().strip())
+        self.config.set(section="TWITCH", option="channel", value=self.channel_var.get())
         self.config.write_updates()
-        ui_settings_bot_settings_update_event.trigger()
-
-
-    def _update_twitch_connect(self, status: bool, twitchutils = None):
-        if status:
-            self.t_con_label.configure(text="Connected", text_color="green")
-        else:
-            if self.clientid_var.get():
-                self.clientid_var.set("")
-            if self.clientsecret_var.get():
-                self.clientsecret_var.set("")
-            self.t_con_label.configure(text="Disconnected", text_color="red")
-            self.parent.focus()
+        ui_settings_twitch_channel_update_event.trigger([True, self.twitch_utils, 5])
     
-
-    def _update_twitch_channel(self, status: bool):
-        if status:
-            self.t_con_label.configure(text="Connected", text_color="green")
-        else:
-            if self.channel_var.get():
-                self.channel_var.set("")
-            self.t_con_label.configure(text="Disconnected", text_color="red")
-            self.parent.focus()
-
 
     def _update_bot_connection(self, status: bool):
         if status:
-            self.chat_con_label.configure(text="Connected", text_color="green")
+            self.chat_con_label.configure(text="Chat Connected", text_color="green")
         else:
-            self.chat_con_label.configure(text="Disconnected", text_color="red")
+            self.chat_con_label.configure(text="Chat Disconnected", text_color="red")
             self.parent.focus()
 
-
-    def _update_twitch_auth(self):
-        if not self.config.has_section("TWITCH"):
-            self.config.add_section("TWITCH")
-        self.config.set(section="TWITCH", option="client_id", value=self.clientid_var.get())
-        self.config.set(section="TWITCH", option="client_secret", value=self.clientsecret_var.get())
-        self.config.set(section="TWITCH", option="channel", value=self.channel_var.get())
-        self.t_con_label.configure(text="Connecting...", text_color="yellow")
-        self.chat_con_label.configure(text="Connecting...", text_color="yellow")
-        self.config.write_updates()
-        ui_settings_twitch_auth_update_event.trigger()
-        ui_settings_twitch_channel_update_event.trigger([True, self.twitch_utils, 5])
+    def _update_twitch_connect(self, status: bool, twitchutils = None):
+        if status:
+            self.t_con_label.configure(text="Twitch Connected", text_color="green")
+        else:
+            self.t_con_label.configure(text="Twitch Disconnected", text_color="red")
+            self.parent.focus()

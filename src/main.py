@@ -39,7 +39,7 @@ server = ServerApp(config)
 async def run_twitch():
 
     async def try_setup():
-        while not all(config.twitch_auth):
+        while not config.twitch_auth:
             await asyncio.sleep(5)
         logger.info("Starting Twitch Client...")
 
@@ -51,13 +51,8 @@ async def run_twitch():
             if twitch_utils.twitch:
                 return True
         except Exception as e:
-            logger.error(f"Invalid Twitch Client Id or Client Secret or other Twitch connection issue")
+            logger.error(f"Invalid Twitch Connection")
             logger.error(e)
-            # only clear on twitch errors
-            if type(e) == TwitchAuthorizationException:
-                config.set(section="TWITCH", option="client_id", value='')
-                config.set(section="TWITCH", option="client_secret", value='')
-                config.write_updates()
         return False
 
     success = False
