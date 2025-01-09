@@ -43,7 +43,7 @@ class LocalTTS(TTS): # TODO Refactor with some inheritance from a TTS class, so 
         self.bits_per_sample = 16
         self.num_channels = 1
 
-        self.max_chunk_size = 1024*8*8*2 # 128kb
+        self.max_chunk_size = 1024*8*8*2*2 # 256kb
 
         engine = pyttsx4.init() 
         for v in engine.getProperty('voices'):
@@ -78,8 +78,9 @@ class LocalTTS(TTS): # TODO Refactor with some inheritance from a TTS class, so 
         chunk = output.read(chunk_size)
 
         while chunk:
-            await asyncio.sleep((len(chunk) / (self.sample_rate * self.num_channels * (self.bits_per_sample // 8))))
-            yield header + chunk
+            duration = (len(chunk) / (self.sample_rate * self.num_channels * (self.bits_per_sample // 8)))
+            await asyncio.sleep(duration)
+            yield (header + chunk, duration)
             chunk = output.read(chunk_size)
 
     def test_speak(self, text:str ="Hello there. How are you?", voice:str = None):

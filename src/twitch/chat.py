@@ -83,6 +83,7 @@ class ChatController(Chat):
                 self._say, command_middleware=[UserRestriction(allowed_users=[x.name for x in self.session_mgr.session.party]),
                                           ChannelCommandCooldown(10), # TODO Config cooldown times
                                           ChannelUserCommandCooldown(15) ])
+        # self.end_session()
 
 
     def stop(self):
@@ -136,10 +137,12 @@ class ChatController(Chat):
             self.send_message(f"Not enough party members in the queue! Type {self.chat._prefix}{self.command_list['join']}  to join ({len(self.session_mgr.session.queue)}/{party_size})")
             return False
 
+
     def end_session(self):
         if self.session_mgr:
             self.session_mgr.end()
-        self.chat.unregister_command('say')
+        self.chat.unregister_command(self.command_list['say'])
+        self.chat.unregister_command(self.command_list['join'])
         chat_on_session_end.trigger()
 
 
