@@ -7,3 +7,4 @@ chat_on_channel_fetch = Event()
 chat_bot_on_connect = Event()
 
 chat_say_command = Event()
+chat_on_join_queue = Event()

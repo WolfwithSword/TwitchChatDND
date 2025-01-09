@@ -3,6 +3,10 @@ import inspect
 import threading
 
 from custom_logger.logger import logger 
+
+# Main sets this at startup. It's cursed, but it works.
+_task_queue = None
+
 class Event:
     def __init__(self):
         self.__listeners = []
@@ -45,7 +49,7 @@ class Event:
                     func(*args)
             except RuntimeError as e:
                 if "main thread is not in main loop" in str(e):
-                    logger.error(f"Error: {e}. This is likely to occur when a trigger is fired from a separate thread to the UI thread.")
+                    _task_queue.put((func, *args))
                     continue
                 else:
                     raise

@@ -13,6 +13,11 @@ def parse_args():
 args = parse_args()
 os.environ['TCDND_DEBUG_MODE'] = '1' if args.debug else '0'
 
+from queue import Queue
+_tasks = Queue()
+import helpers.event as _event_module
+setattr(sys.modules[_event_module.__name__], '_task_queue', _tasks)
+
 from twitch.utils import TwitchUtils
 from twitch.chat import ChatController
 from twitchAPI.type import TwitchAuthorizationException
@@ -44,6 +49,7 @@ chat: ChatController = ChatController(session_mgr, config)
 server = ServerApp(config)
 
 APP_RUNNING = True
+
 
 async def run_twitch():
 
@@ -131,13 +137,33 @@ async def run_ui():
     sys.exit(0)
     # app.mainloop()
 
+async def run_queued_tasks():
+    while True:
+        try:
+            callback = None
+            args = None
+            if _tasks.empty():
+                await asyncio.sleep(0.5)
+            else:
+                items = _tasks.get(False)
+                callback = items[0]
+                if len(items) > 1:
+                    args = items[1:]
+                    callback(*args)
+                else:
+                    callback()
+        except Exception as e:
+            logger.error(f"Error in queued task: {callback} ({args}) - {e}")
+
+
 async def run_all():
     tasks = [
-        asyncio.create_task(initialize_database()),
+        asyncio.create_task(initialize_database(), name="DB-Setup"),
         asyncio.create_task(run_server(), name="Server"),
         asyncio.create_task(run_twitch(), name="Twitch"),
         asyncio.create_task(run_ui(), name="UI"),
-        asyncio.create_task(run_twitch_bot(), name="Twitch-Bot")
+        asyncio.create_task(run_twitch_bot(), name="Twitch-Bot"),
+        asyncio.create_task(run_queued_tasks(), name="Task-Queue")
     ]
 
     try: 
