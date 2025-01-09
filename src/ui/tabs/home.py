@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from custom_logger.logger import logger
 
+from ui.widgets.member_card import MemberCard
 from twitch.chat import ChatController
 from chatdnd.events.chat_events import chat_on_join_queue, chat_bot_on_connect
 
@@ -67,8 +68,28 @@ class HomeTab():
         chat_bot_on_connect.addListener(self._allow_session_management)
 
         ##################################
-        # TODO party view of cards when session is active
 
+        ####### Party View #######
+
+        self._party_frame = ctk.CTkFrame(self.parent, width=550, height=586)
+        self._party_frame.place(relx=0.268, rely = 0.057)
+        self._party_frame.grid_propagate(False)
+        self._fill_party_frame()
+
+        ##################################
+
+
+    def _fill_party_frame(self):
+        for child in self._party_frame.winfo_children():
+            child.destroy()
+
+        columns = 3
+        for index, member in enumerate(sorted(self.chat_ctrl.session_mgr.session.party)):
+            row = index // columns
+            col = index % columns
+            member_card = MemberCard(self._party_frame, member, width=130, height=170, textsize=10)
+            member_card.grid(row=row, column=col, padx=(35, 10), pady=(12,12), sticky="w")
+            
 
     def _allow_session_management(self, status: bool):
         if status:
@@ -87,15 +108,19 @@ class HomeTab():
         self.party_size_slider.configure(state="normal")
         self.start_session.configure(state="normal")
         self.end_button.configure(state="disabled")
+        self._fill_party_frame()
 
 
     def _start_session(self):
         result = self.chat_ctrl.start_session(self.party_size_var.get())
         if result:
+            for child in self.queue_list.winfo_children():
+                child.destroy()
             self.session_status_var.set(value=self.chat_ctrl.session_mgr.session.state.name.capitalize())
             self.party_size_slider.configure(state="disabled")
             self.start_session.configure(state="disabled")
             self.end_button.configure(state="normal")
+            self._fill_party_frame()
 
 
     def _end_session(self):
@@ -107,6 +132,7 @@ class HomeTab():
         self.party_size_slider.configure(state="normal")
         self.start_session.configure(state="disabled")
         self.end_button.configure(state="disabled")
+        self._fill_party_frame()
 
 
     def add_queue_user(self, name):

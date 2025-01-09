@@ -11,11 +11,12 @@ from tts import LocalTTS
 from data.member import update_tts
 
 class MemberCard(ctk.CTkFrame):
-    def __init__(self, parent, member: Member, width=160, height=200, *args, **kwargs):
+    def __init__(self, parent, member: Member, width=160, height=200, textsize=12, *args, **kwargs):
         super().__init__(parent, width=width, height=height, *args, **kwargs)
         self.member: Member = member
         self.width = width
         self.height = height
+        self.textsize = textsize
         self.grid_propagate(False)
         self.create_card()
 
@@ -25,7 +26,7 @@ class MemberCard(ctk.CTkFrame):
     def create_card(self):
         self.setup_pfp()
 
-        name_label = ctk.CTkLabel(self, text=self.member.name.upper(), font=("Arial", 12), wraplength=self.width-10)
+        name_label = ctk.CTkLabel(self, text=self.member.name.upper(), font=("Arial", self.textsize), wraplength=self.width-10)
         name_label.grid(row=2, column=0, sticky="s", padx=5, pady=(2,10))
         name_label.bind("<Button-1>", self.open_edit_popup)
 
@@ -46,7 +47,7 @@ class MemberCard(ctk.CTkFrame):
         except Exception as e:
             logger.warn(f"Could not fetch image for {self.member}. {e}")
             self.bg_image = None
-            self.bg_label = ctk.CTkLabel(self, text="No Image", font=("Arial", 10))
+            self.bg_label = ctk.CTkLabel(self, text="No Image", font=("Arial", self.textsize))
             self.bg_label.grid(row=0, column=0, sticky="nsew")
             self.bg_label.bind("<Button-1>", self.open_edit_popup)
 
@@ -78,6 +79,7 @@ class MemberEditCard(ctk.CTkToplevel):
 
 
     def create_widgets(self):
+        # TODO add stuff, make pretty, idk
         self.label = ctk.CTkLabel(self, text="Preferred TTS:")
         self.label.pack(pady=(20, 5))
 
@@ -86,9 +88,9 @@ class MemberEditCard(ctk.CTkToplevel):
         self.tts_dropdown = ctk.CTkOptionMenu(
             self, values=self.tts_options
         )
+
         self.tts_dropdown.set(self.member.preferred_tts or self.tts_options[0])
         self.tts_dropdown.pack(pady=(5, 20))
-
         
         self.test_button = ctk.CTkButton(self, text="Preview", command=self.test_tts)
         self.test_button.pack(pady=10)
@@ -99,6 +101,7 @@ class MemberEditCard(ctk.CTkToplevel):
 
     def test_tts(self):
         self.localTTS.test_speak(voice=self.tts_dropdown.get())
+
 
     def save_changes(self):
         new_tts = self.tts_dropdown.get()

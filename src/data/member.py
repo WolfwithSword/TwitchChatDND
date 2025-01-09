@@ -40,12 +40,18 @@ class Member(Base):
     def __repr__(self):
         return f"Member(name='{self.name}')"
 
+    def __lt__(self, other):
+        return self.name < other.name
+
+    def __gt__(self, other):
+        return self.name > other.name
+
 
 async def create_or_get_member(name: str, pfp_url: str = "") -> Member:
     member = await _upsert_member(name, pfp_url)
     return member
 
-async def _upsert_member(name: str, pfp_url: str, preferred_tts: str = "") -> Member:
+async def _upsert_member(name: str, pfp_url: str) -> Member:
     name = name.lower()
     async with async_session() as session:
         async with session.begin():
@@ -57,8 +63,6 @@ async def _upsert_member(name: str, pfp_url: str, preferred_tts: str = "") -> Me
                 # Update existing member
                 if member.pfp_url != pfp_url:
                     member.pfp_url = pfp_url
-                if member.preferred_tts != preferred_tts:
-                    member.preferred_tts = preferred_tts
                 await session.commit()
                 return member
             else:

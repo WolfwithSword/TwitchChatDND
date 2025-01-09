@@ -79,7 +79,10 @@ class SettingsTab():
         row+=1
         column=0
         label_web = ctk.CTkLabel(self.parent, text="Browser Source", anchor="w", font=header_font)
-        label_web.grid(row=row, column=0, padx=10, pady=(50,10))
+        label_web.grid(row=row, column=column, padx=10, pady=(50,10))
+        row+=1
+        label_bs = ctk.CTkLabel(self.parent, text="http://localhost:5000/overlay") # TODO copy to clipboard button, dynamic string with port from config.
+        label_bs.grid(row=row, column=column, padx=(10,10), pady=(10, 2))
         # TODO: Port configuration. Can we easily restart the quart server while live, or require application restart?
         # TODO: Copy button for the overlay URL
 
