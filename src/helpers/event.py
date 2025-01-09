@@ -61,4 +61,4 @@ class Event:
         try: 
             await func(*args)
         except Exception as e:
-            print(f"Async Event Listener error: {e}")
+            logger.error(f"Async Event Listener error: {e}")

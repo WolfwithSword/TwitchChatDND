@@ -5,7 +5,6 @@ from ui.widgets.member_card import MemberCard
 from twitch.chat import ChatController
 from chatdnd.events.chat_events import chat_on_join_queue, chat_bot_on_connect
 
-# TODO: Display current active party on session start as MemberCards (smaller than on users page)
 
 class HomeTab():
     def __init__(self, parent, chat_ctrl: ChatController):
@@ -94,6 +93,7 @@ class HomeTab():
     def _allow_session_management(self, status: bool):
         if status:
             self.open_button.configure(state="normal")
+            self._end_session()
         else:
             self.open_button.configure(state="disabled")
 
@@ -122,7 +122,7 @@ class HomeTab():
             self.start_session.configure(state="disabled")
             self.end_button.configure(state="normal")
             self._fill_party_frame()
-
+        
 
     def _end_session(self):
         self.chat_ctrl.end_session()

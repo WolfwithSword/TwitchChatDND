@@ -24,3 +24,6 @@ class Session():
         self.queue.clear()
         self.party.clear()
         self.state: SessionState = SessionState.NONE
+
+    def get_party(self) -> List[Member]:
+        return sorted(self.party)

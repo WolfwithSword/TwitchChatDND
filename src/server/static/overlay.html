@@ -2,12 +2,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Overlay</title>
+    <title>Chat DnD Overlay</title>
+    <style>
+
+        #user-cards {
+            position: fixed;
+            bottom: 0px;
+            left: 16px;
+            z-index: 100;
+            display: flex;
+            flex-direction: row; 
+            gap: 16px; 
+            flex-wrap: wrap;
+        }
+
+        .user-card {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .user-card img {
+            width: 260px;  
+            height: 260px;  
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .user-card span {
+            color: white;
+            font-size: 18px;
+            margin-top: 6px;
+            margin-bottom: 6px;
+            font-weight: bold;
+            text-align: center;
+            word-wrap: break-word;
+        }
+
+        .speech-bubble {
+            position: absolute;
+            top: 50px;
+            left: 16px;
+            background-color: #e0e0e0;
+            color: black !important;
+            padding: 10px;
+            line-height: 1.5;
+            border-radius: 8px;
+            font-size: 28px;
+            opacity: 0;
+            visibility: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            word-wrap: break-word;
+            text-align: left;
+            transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+            animation: none;
+            max-width: 50%;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .speech-bubble.active {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+        }
+
+        .speech-bubble span {
+            display: inline-block;
+            /* opacity: 0; */
+            font-size: 28px;
+            animation: typing 0.5s steps(30, end) forwards;
+            color: black !important;
+        }
+
+        @keyframes typing {
+            0% {
+                width: 0
+            }
+            100% {
+                width: 100%
+            }
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+        .anim-bounce {
+            animation: bounce 1s ease infinite;
+        }
+
+    </style>
 </head>
-<body>
-    <h1>Audio Overlay</h1> <!-- Temp - TODO: remove this but add in fancy placeholder templates for eventually an active party with pfps that highlight and TTS text popups -->
+    <div id="user-cards"></div>
 
     <script>
+        // Audio Processing Only
         let audioContext;
         let isPlaying = false;
         const audioQueue = [];
@@ -49,7 +148,7 @@
 
 
         function connectWebSocket() {
-            ws = new WebSocket(`ws://${window.location.host}/tts`);
+            ws = new WebSocket(`ws://${window.location.host}/ws/tts`);
             ws.binaryType = 'arraybuffer';
 
             ws.onopen = () => {
@@ -136,8 +235,190 @@
                 reconnectTimeout = null;
             }, reconnectInterval);
         }
+        window.addEventListener('load', connectWebSocket);
+        setTimeout(() => {
+        if (ws.readyState === WebSocket.CONNECTING) {
+            console.log('Attempting to reconnect user WebSocket...');
+            ws.close(); 
+            }
+        }, 500); 
 
-        connectWebSocket();
+        // User/Member stuff only
+        const userContainer = document.getElementById('user-cards');
+
+        let socket;
+
+        let reconnectInterval_m = 5000;
+        let reconnectTimeout_m = null;
+        
+        function connectMembersWebSocket() {
+            socket = new WebSocket(`ws://${window.location.host}/ws/members`);
+
+            socket.onopen = () => {
+                console.log('Members WebSocket connected');
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'update_users') {
+                    updateUsers(data.users);
+                } else if (data.type === 'animate') {
+                    animateUser(data.name, data.animation);
+                } else if (data.type === 'speech') {
+                    clearSpeechBubbles(true);
+                    addSpeechBubble(data.name, data.message);
+                } else if (data.type === 'endspeech') {
+                    clearSpeechBubbles(false);
+                }
+                console.log(data)
+            };
+
+            socket.onerror = (error) => {
+                console.log('Members WebSocket Error: ' + error);
+                console.log({error})
+                ws = null;
+                attemptMembersReconnect(); 
+            };
+
+            socket.onclose = () => {
+                console.log('Members WebSocket closed. Attempting to reconnect...');
+                ws = null;
+                attemptMembersReconnect(); 
+            };
+        }
+
+        function attemptMembersReconnect() {
+            if (reconnectTimeout_m) {
+                return;
+            }
+
+            reconnectTimeout_m = setTimeout(() => {
+                console.log('Attempting to reconnect Members WebSocket...');
+                connectMembersWebSocket();
+                reconnectTimeout_m = null;
+            }, reconnectInterval_m);
+        }
+
+        function updateUsers(users) {
+            userContainer.innerHTML = ''; // clear
+            users.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.setAttribute("data-user", user.name);
+                card.innerHTML = `
+                    <img src="${user.pfp_url}" alt="${user.name}">
+                    <span>${user.name}</span>
+                `;
+                userContainer.appendChild(card);
+            });
+        }
+
+
+        function animateUser(name, animation) {
+            const userCards = document.querySelectorAll('.user-card');
+            userCards.forEach((card) => {
+                const _name = card.querySelector('span').textContent;
+                if (_name === name) {
+                    const image = card.querySelector('img');
+                    image.classList.forEach((cls) => {
+                            if (cls.startsWith('anim-')) {
+                                image.classList.remove(cls);
+                            }
+                    });
+                    if (animation == "idle") {
+                        return
+                    }
+                    image.classList.add(`anim-${animation}`);
+                }
+            });
+        }
+
+        window.addEventListener('load', connectMembersWebSocket);
+        setTimeout(() => {
+        if (socket.readyState === WebSocket.CONNECTING) {
+            console.log('Attempting to reconnect user WebSocket...');
+            socket.close();
+            }
+        }, 500);
+
+
+        function addSpeechBubble(name, message) {   
+            // TODO: Display username on top of speech bubble
+            const userCards = document.querySelectorAll('.user-card');
+    
+            if (userCards.length === 0) {
+                console.log("No user cards found.");
+                return;
+            }
+
+            const speechBubble = document.createElement('div');
+            speechBubble.classList.add('speech-bubble');
+            
+            const messageSpan = document.createElement('span');
+            messageSpan.innerText = ''; 
+            speechBubble.appendChild(messageSpan);
+
+            document.body.appendChild(speechBubble);
+
+            const userCardsRect = userCards[0].getBoundingClientRect();
+            let topOffset = userCardsRect.top - 40; 
+
+            speechBubble.style.top = `${topOffset}px`;
+
+            const letters = message.split('');
+            let currentText = '';
+            let hasWrapped = false;
+
+            const lineHeight = parseInt(window.getComputedStyle(speechBubble).lineHeight, 10);
+            speechBubble.style.whiteSpace = 'nowrap';
+
+            letters.forEach((letter, index) => {
+                setTimeout(() => {
+                    currentText += letter;
+                    messageSpan.innerText = currentText;
+
+                    if (index < 25) {
+                        speechBubble.style.whiteSpace = 'nowrap';
+                    }
+
+                    if (index > 0) {
+                        const bubbleHeight = speechBubble.offsetHeight;
+
+                        const lines = Math.ceil(bubbleHeight / lineHeight);
+
+                        if (lines > 1) {
+                            if (!hasWrapped && index > 25){
+                                speechBubble.style.whiteSpace = 'normal';
+                                hasWrapped = true; 
+                            }
+                            topOffset = userCardsRect.top - 40 - (lines - 1) * lineHeight;
+                            speechBubble.style.top = `${topOffset}px`;
+                        }
+                    }
+
+                    if (index === 0) {
+                        speechBubble.classList.add('active');
+                    }
+                }, index * 55); 
+            });
+        }
+
+        function clearSpeechBubbles(immediately) {
+            
+            const speechBubble = document.querySelector(".speech-bubble");
+            if (!speechBubble) {
+                return;
+            }
+            if (immediately) {
+                speechBubble.remove();
+            }
+            else {
+                setTimeout(() => {
+                    speechBubble.remove();
+                }, 1750);
+            }
+        }
+
     </script>
 </body>
 </html>
