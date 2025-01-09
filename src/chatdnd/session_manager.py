@@ -15,8 +15,8 @@ class SessionManager():
             return False 
         self.session.state = SessionState.STARTED
         self.session.party.clear()
-        self.session.queue.clear()
         self.session.party.update(random.sample(sorted(self.session.queue), party_size))
+        self.session.queue.clear()
         return True
     
     def end(self):
