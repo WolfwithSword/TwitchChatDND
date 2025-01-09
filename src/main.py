@@ -138,7 +138,7 @@ async def run_ui():
     # app.mainloop()
 
 async def run_queued_tasks():
-    while True:
+    while APP_RUNNING:
         try:
             callback = None
             args = None
