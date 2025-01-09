@@ -28,7 +28,7 @@ class CustomLogger:
     def __init__(self, name):
         self.logger = logging.getLogger(name)
         debug_mode = os.environ['TCDND_DEBUG_MODE'] == '1'
-        self.logger.setLevel(logging.DEBUG if debug_mode else logging.INFO)  # TODO env var
+        self.logger.setLevel(logging.DEBUG if debug_mode else logging.INFO)
 
         self.log_queue = Queue()
 

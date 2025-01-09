@@ -7,7 +7,7 @@ from twitchAPI.type import ChatEvent
 from twitch.utils import TwitchUtils
 
 from data import Member
-from data.member import create_or_get_member
+from data.member import create_or_get_member, fetch_member
 from chatdnd import SessionManager
 
 from custom_logger.logger import logger
@@ -113,14 +113,14 @@ class ChatController(Chat):
             return
         if self.session_mgr:
             self.session_mgr.end()
+        self.session_mgr.open()
         self.chat.unregister_command(self.command_list['say'])
         self.chat.register_command(self.command_list['join'], self._add_user_to_queue, command_middleware=[ChannelUserCommandCooldown(30)])
         self.send_message(f"Session started! Type {self.chat._prefix}{self.command_list['join']} to queue for the adventuring party")
         chat_on_session_open.trigger()
 
 
-    def start_session(self):
-        party_size = 4
+    def start_session(self, party_size) -> bool:
         if self.session_mgr.start_session(party_size=party_size): # config 
             self.chat.unregister_command(self.command_list['join'])
             party = [x.name for x in self.session_mgr.session.party]
@@ -131,8 +131,10 @@ class ChatController(Chat):
             self.send_message(f"Say welcome to our party members: {", ".join(party)}")
             self.send_message(f"Party members, type {self.chat._prefix}{self.command_list['say']} <msg> to have it spoken via TTS") 
             chat_on_session_start.trigger()
+            return True
         else:
             self.send_message(f"Not enough party members in the queue! Type {self.chat._prefix}{self.command_list['join']}  to join ({len(self.session_mgr.session.queue)}/{party_size})")
+            return False
 
     def end_session(self):
         if self.session_mgr:
@@ -142,7 +144,6 @@ class ChatController(Chat):
 
 
     async def _add_user_to_queue(self, cmd: ChatCommand):
-        # TODO move to diff place? maybe not
         user: TwitchUser = await self.twitch_utils.get_user_by_name(username=cmd.user.name)
         if not user:
             return
@@ -151,6 +152,7 @@ class ChatController(Chat):
         member = await create_or_get_member(name=cmd.user.display_name, pfp_url = user.profile_image_url)
         if member not in self.session_mgr.session.queue:
             await cmd.reply(f'{member.name} added to queue')
+            chat_on_join_queue.trigger([cmd.user.name])
         else:
             await cmd.reply(f'{member.name} already in the queue')
         self.session_mgr.join_queue(member)
@@ -160,4 +162,5 @@ class ChatController(Chat):
         await asyncio.sleep(0.1)
         if cmd.parameter:
             # Event trigger *does* work here
-            chat_say_command.trigger([cmd.user.name, cmd.parameter])
+            member = await fetch_member(cmd.user.name.lower())
+            chat_say_command.trigger([member, cmd.parameter])
