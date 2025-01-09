@@ -4,6 +4,7 @@ from asyncio import Queue
 from quart import Quart, redirect, request, jsonify, websocket, render_template, send_from_directory, Response
 import os, sys
 
+from data import Member
 from tts import LocalTTS
 from helpers import TCDNDConfig as Config
 from custom_logger.logger import logger
@@ -40,10 +41,10 @@ class ServerApp():
                 logger.debug("ws opened")
                 while True:
                     if not message_queue.empty():
-                        message = await message_queue.get()
-                        logger.info(f"saying {message}")
+                        member, message = await message_queue.get()
+                        logger.info(f"saying {message} from {member}")
 
-                        async for chunk in self.tts.get_stream(message):
+                        async for chunk in self.tts.get_stream(message, '' if not member else member.preferred_tts):
                             await asyncio.wait_for(websocket.send(chunk), timeout=10)
                     await asyncio.sleep(0.1)
             except Exception as e:
@@ -64,7 +65,7 @@ class ServerApp():
                 return jsonify({"error": "Text is required"}), 400
             
             if clients:
-                await message_queue.put(text)
+                await message_queue.put((None, text))
                 return jsonify({"status": "success", "message": "Text sent to WebSocket for TTS."})
             else:
                 return jsonify({"error": "No active WebSocket connection."}), 400
@@ -73,11 +74,11 @@ class ServerApp():
         async def overlay():
             return await send_from_directory(STATIC_DIR, 'overlay.html')
     
-    async def chat_say(self, username: str, text: str):
-        logger.info(f"TTS saying '{text}' from {username}")
+    async def chat_say(self, member: Member, text: str):
+        logger.info(f"TTS saying '{text}' from {'UNKNOWN' if not member else member.name}")
         # If client was connected but dc'd, this can revive connection when it runs. But also, we don't want things to queue up forever... Might not be a problem, needs hard testing later
         # But cannot simply do an if check here for clients
-        await message_queue.put(text)
+        await message_queue.put((member, text))
 
             
     async def run_task(self, host="0.0.0.0", **kwargs):

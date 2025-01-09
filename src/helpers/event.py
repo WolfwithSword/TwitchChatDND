@@ -52,6 +52,7 @@ class Event:
             except Exception as e:
                 raise
 
+
     async def _run_async_func(self, func, *args):
         try: 
             await func(*args)

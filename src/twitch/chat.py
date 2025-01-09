@@ -7,7 +7,7 @@ from twitchAPI.type import ChatEvent
 from twitch.utils import TwitchUtils
 
 from data import Member
-from data.member import create_or_get_member
+from data.member import create_or_get_member, fetch_member
 from chatdnd import SessionManager
 
 from custom_logger.logger import logger
@@ -160,4 +160,5 @@ class ChatController(Chat):
         await asyncio.sleep(0.1)
         if cmd.parameter:
             # Event trigger *does* work here
-            chat_say_command.trigger([cmd.user.name, cmd.parameter])
+            member = await fetch_member(cmd.user.name.lower())
+            chat_say_command.trigger([member, cmd.parameter])

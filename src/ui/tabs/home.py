@@ -3,6 +3,8 @@ from custom_logger.logger import logger
 
 from twitch.chat import ChatController
 
+# TODO: Display current active party on session start as MemberCards (smaller than on users page)
+
 class HomeTab():
     def __init__(self, parent, chat_ctrl: ChatController):
         self.parent = parent

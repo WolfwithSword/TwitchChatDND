@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, Mapped, mapped_column
-from sqlalchemy import String, Integer, JSON
+from sqlalchemy import String, Integer, JSON, asc
+from sqlalchemy.future import select
 
 from data.base import Base
 
@@ -37,14 +38,14 @@ class Member(Base):
 
 
     def __repr__(self):
-        return f"Member(name='{self.name})"
+        return f"Member(name='{self.name}')"
 
 
 async def create_or_get_member(name: str, pfp_url: str = "") -> Member:
     member = await _upsert_member(name, pfp_url)
     return member
 
-async def _upsert_member(name: str, pfp_url: str) -> Member:
+async def _upsert_member(name: str, pfp_url: str, preferred_tts: str = "") -> Member:
     name = name.lower()
     async with async_session() as session:
         async with session.begin():
@@ -56,6 +57,9 @@ async def _upsert_member(name: str, pfp_url: str) -> Member:
                 # Update existing member
                 if member.pfp_url != pfp_url:
                     member.pfp_url = pfp_url
+                if member.preferred_tts != preferred_tts:
+                    member.preferred_tts = preferred_tts
+                await session.commit()
                 return member
             else:
                 # Create new member
@@ -63,9 +67,40 @@ async def _upsert_member(name: str, pfp_url: str) -> Member:
                 session.add(new_member)
                 return new_member
 
+async def update_tts(member: Member, preferred_tts: str = ""):
+    async with async_session() as session:
+        async with session.begin():
+            member_in_db = await session.get(Member, member.id)
+            if member_in_db:
+                member_in_db.preferred_tts = preferred_tts
+                await session.commit()
+
+
 async def fetch_member(name: str) -> Member | None:
     name = name.lower()
     async with async_session() as session:
         query = select(Member).where(Member.name == name)
         result = await session.execute(query)
         return result.scalars().first()
+
+
+async def fetch_paginated_members(page: int, per_page: int=20, 
+                                  exclude_names: list[str] = None,
+                                  name_filter: str = None) -> list[Member]:
+    if not exclude_names:
+        exclude_names = []
+    
+    async with async_session() as session:
+        query = select(Member).order_by(asc(Member.name))
+
+        if exclude_names:
+            query = query.where(Member.name.notin_([name.lower()] for name in exclude_names))
+        
+        if name_filter:
+            query = query.where(Member.name.like(f"%{name_filter.lower()}%"))
+        
+        offset = (page -1) * per_page
+        query = query.offset(offset).limit(per_page)
+
+        result = await session.execute(query)
+        return result.scalars().all()
