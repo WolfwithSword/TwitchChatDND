@@ -116,6 +116,7 @@ class HomeTab():
         if result:
             for child in self.queue_list.winfo_children():
                 child.destroy()
+            self.queue_label_var.set(value=f"{len(self.chat_ctrl.session_mgr.session.queue)} in Queue")
             self.session_status_var.set(value=self.chat_ctrl.session_mgr.session.state.name.capitalize())
             self.party_size_slider.configure(state="disabled")
             self.start_session.configure(state="disabled")
