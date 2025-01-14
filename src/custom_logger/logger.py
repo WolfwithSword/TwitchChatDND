@@ -24,6 +24,20 @@ class CustomFileHandler(RotatingFileHandler):
         formatter = logging.Formatter(_format)
         self.setFormatter(formatter)
 
+class RedirectSysLogger(object):
+    def __init__(self, logger, level):
+       self.logger = logger
+       self.level = level
+       self.linebuf = ''
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            if line.strip():
+                self.logger.log(self.level, line.rstrip())
+
+    def flush(self):
+        pass
+
 class CustomLogger:
     def __init__(self, name):
         self.logger = logging.getLogger(name)
@@ -65,3 +79,5 @@ class CustomLogger:
         self.listener.stop()
 
 logger = CustomLogger("ChatDND").logger
+sys.stdout = RedirectSysLogger(logger, logging.INFO)
+sys.stderr = RedirectSysLogger(logger, logging.ERROR)
