@@ -69,7 +69,7 @@ class UsersTab():
                 new_cards = list()
                 columns = 6
                 for member in members:
-                    member_card = MemberCard(self.members_list_frame, member)
+                    member_card = MemberCard(self.members_list_frame, member,self.chat_ctrl.config)
                     new_cards.append(member_card)
                 new_cards = sorted(new_cards[:], key=lambda x: x.member.name)
                 for index, card in enumerate(new_cards):

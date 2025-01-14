@@ -45,6 +45,9 @@ class TCDNDConfig(configparser.ConfigParser):
         if not self.has_option(section="CACHE", option="cache_expiry"):
             needs_init = True
             self.set(section="CACHE", option="cache_expiry", value=str(7*24*60*60))
+        if not self.has_option(section="CACHE", option="tts_cache_expiry"):
+            needs_init = True
+            self.set(section="CACHE", option="tts_cache_expiry", value=str(7*24*60*60*4*3))
         
         if not self.has_section("TWITCH"):
             needs_init = True
@@ -59,6 +62,13 @@ class TCDNDConfig(configparser.ConfigParser):
         if not self.has_option(section="DND", option="party_size"):
             needs_init = True
             self.set(section="DND", option="party_size", value=str(4))
+
+        if not self.has_section("ELEVENLABS"):
+            needs_init = True
+            self.add_section("ELEVENLABS")
+        if not self.has_option(section="ELEVENLABS", option="api_key"):
+            needs_init = True
+            self.set(section="ELEVENLABS", option="api_key", value='')
 
         if needs_init:
             self.write_updates()

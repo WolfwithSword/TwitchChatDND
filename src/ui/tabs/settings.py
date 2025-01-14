@@ -1,11 +1,18 @@
 import customtkinter as ctk
+from CTkListbox import *
 from custom_logger.logger import logger
 
 from helpers import TCDNDConfig as Config
+from helpers.utils import run_coroutine_sync
+from helpers.constants import SOURCE_11L
 from twitch.utils import TwitchUtils
+from tts import ElevenLabsTTS
+from data.voices import delete_voice
+from data.member import remove_tts
 from chatdnd.events.ui_events import *
 from chatdnd.events.chat_events import *
 from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_event
+from chatdnd.events.tts_events import request_elevenlabs_connect, on_elevenlabs_connect, on_elevenlabs_test_speak
 
 class SettingsTab():
     # TODO Someone, please, clean this POS up. I'm begging. Nvm it's actually sorta clean, not really, but good enough
@@ -79,21 +86,121 @@ class SettingsTab():
         row+=1
         column=0
         label_web = ctk.CTkLabel(self.parent, text="Browser Source", anchor="w", font=header_font)
-        label_web.grid(row=row, column=column, padx=10, pady=(50,10))
+        label_web.grid(row=row, column=column, padx=10, pady=(30,10))
         row+=1
-        label_bs = ctk.CTkLabel(self.parent, text="http://localhost:5000/overlay") # TODO copy to clipboard button, dynamic string with port from config.
-        label_bs.grid(row=row, column=column, padx=(10,10), pady=(10, 2))
+        label_bs_var = ctk.StringVar(value=f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay") # TODO update dynamically when port adjustment is implemented
+        label_bs = ctk.CTkEntry(self.parent, textvariable=label_bs_var, state="readonly", width=190)
+        label_bs.grid(row=row, column=column, padx=(10,2), pady=(10, 2))
+        def _copy_web_clipboard():
+            self.parent.clipboard_clear()
+            self.parent.clipboard_append(label_bs.get())
+        button_web = ctk.CTkButton(self.parent, width=30, height=30, text="Copy", command=_copy_web_clipboard)
+        column += 1
+        button_web.grid(row=row, column=column, padx=(2, 10), pady=(10,2), sticky='w')
         # TODO: Port configuration. Can we easily restart the quart server while live, or require application restart?
-        # TODO: Copy button for the overlay URL
 
 
-
-        ######### TTS ##########
+        ######### 11L TTS ##########
         row+=1
         column=0
-        label_tts = ctk.CTkLabel(self.parent, text="TTS", anchor="w", font=header_font)
-        label_tts.grid(row=row, column=0, padx=10, pady=(50,10))
-        # Select a default for new members, later later later on toggle for use elevenlabs too (needs its own config section)
+        label_tts = ctk.CTkLabel(self.parent, text="ElevenLabs TTS", anchor="w", font=header_font)
+        label_tts.grid(row=row, column=column, padx=10, pady=(40,10))
+        column+=1
+        self.e11labs_con_label = ctk.CTkLabel(self.parent, text="ElevenLabs Disconnected", text_color="red")
+        self.e11labs_con_label.grid(row=row, column=column, padx=10, pady=(30,2))
+
+        row += 1
+        column = 0
+        button_el = ctk.CTkButton(self.parent,height=30, text="Save", command=self._update_el_settings)
+        button_el.grid(row=row, column=column, padx=10, pady=(20,10))
+        column +=1
+        el_api_label = ctk.CTkLabel(self.parent, text="API Key")
+        el_api_label.grid(row=row, column=column, padx=(10,10), pady=(10,2))
+        column +=1
+        el_voices_label = ctk.CTkLabel(self.parent, text="ElevenLabs Added Voices")
+        el_voices_label.grid(row=row, column=column, padx=(10,10), pady=(10,2))
+
+
+        column=1
+        row+=1
+        self.el_api_key_var = ctk.StringVar(value=self.config.get(section="ELEVENLABS", option="api_key", fallback=""))
+        el_api_key_entry = ctk.CTkEntry(self.parent, width=180, height=30, border_width=1, fg_color="white", placeholder_text="API Key", text_color="black", textvariable=self.el_api_key_var)
+        el_api_key_entry.configure(justify="center", show="*")
+        el_api_key_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20), sticky='n')
+
+        self.e11_voices = CTkListbox(self.parent, width=450, height=200, command=self._on_voice_option_select)
+
+        column +=1
+        self.e11_voices.grid(row=row, column=column, columnspan=3)
+        column += 3
+
+        # could undo some of these self's if in a method?
+        self.add_v_button = ctk.CTkButton(self.parent,height=30, text="Add Voice", command=self.open_edit_popup)
+        self.add_v_button.grid(row=row, column=column, padx=10, pady=(2,10), sticky='n')
+        self.del_v_button = ctk.CTkButton(self.parent,height=30, text="Remove Voice", fg_color="#b1363d", hover_color="#772429", command=self._delete_voice)
+        self.del_v_button.grid(row=row, column=column, padx=10, pady=(42,10), sticky='n')
+        self.preview_v_button = ctk.CTkButton(self.parent,height=30, text="Preview Voice", command=self._preview_e11_voice)
+        self.preview_v_button.grid(row=row, column=column, padx=10, pady=(138,10), sticky='n')
+
+        on_elevenlabs_connect.addListener(self._update_elevenlabs_connection)
+        request_elevenlabs_connect.trigger()
+
+
+    def open_edit_popup(self, event=None):
+        AddVoiceCard(self.config, self._update_voice_list)
+    
+
+    def _on_voice_option_select(self, option):
+        if option:
+            self.preview_v_button.configure(state="normal")
+            if self.e11_voices.size() > 1:
+                self.del_v_button.configure(state="normal")
+            else: 
+                self.del_v_button.configure(state="disabled")
+        else:
+            self.del_v_button.configure(state="disabled")
+            self.preview_v_button.configure(state="disabled")
+
+
+    def _preview_e11_voice(self):
+        option = self.e11_voices.get()
+        if not option:
+            return
+        client = ElevenLabsTTS(self.config)
+        if uid := client.get_voices()[option]:
+            on_elevenlabs_test_speak.trigger(["Hello there. How are you?", uid])
+
+
+    def _update_voice_list(self):
+        client = ElevenLabsTTS(self.config)
+        if self.e11_voices.size():
+            self.e11_voices.selection_clear()
+            while self.e11_voices.size():
+                self.e11_voices.deactivate('END')
+                self.e11_voices.delete('END')
+        for k in client.get_voices().keys():
+            self.e11_voices.insert("END", option=k)
+        self.del_v_button.configure(state="disabled")
+        self.preview_v_button.configure(state="disabled")
+
+
+    def _delete_voice(self):
+        if self.e11_voices.size() <= 1:
+            return
+        option = self.e11_voices.get()
+        client = ElevenLabsTTS(self.config)
+        result = None
+        if uid := client.get_voices()[option]:
+            result0 = run_coroutine_sync(remove_tts(voice_id=uid))
+            result1 = run_coroutine_sync(delete_voice(uid=uid, source=SOURCE_11L))
+        if result1:
+            self._update_voice_list()
+
+
+    def _update_el_settings(self):
+        self.config.set(section="ELEVENLABS", option="api_key", value=str(self.el_api_key_var.get()))
+        self.config.write_updates()
+        request_elevenlabs_connect.trigger()
 
 
     def _update_bot_settings(self):
@@ -106,6 +213,24 @@ class SettingsTab():
         ui_settings_twitch_channel_update_event.trigger([True, self.twitch_utils, 5])
     
 
+    def _update_elevenlabs_connection(self, status: bool):
+        if status:
+            self.e11labs_con_label.configure(text="ElevenLabs Connected", text_color="green")
+            self._update_voice_list()
+            self.add_v_button.configure(state="normal")
+        else:
+            self.e11labs_con_label.configure(text="ElevenLabs Disconnected", text_color="red")
+            self.add_v_button.configure(state="disabled")
+            if self.e11_voices.size():
+                self.e11_voices.selection_clear()
+                while self.e11_voices.size():
+                    self.e11_voices.deactivate('END')
+                    self.e11_voices.delete('END')   
+            self.del_v_button.configure(state="disabled")
+            self.preview_v_button.configure(state="disabled")
+            self.parent.focus()
+
+
     def _update_bot_connection(self, status: bool):
         if status:
             self.chat_con_label.configure(text="Chat Connected", text_color="green")
@@ -113,9 +238,62 @@ class SettingsTab():
             self.chat_con_label.configure(text="Chat Disconnected", text_color="red")
             self.parent.focus()
 
+
     def _update_twitch_connect(self, status: bool, twitchutils = None):
         if status:
             self.t_con_label.configure(text="Twitch Connected", text_color="green")
         else:
             self.t_con_label.configure(text="Twitch Disconnected", text_color="red")
             self.parent.focus()
+
+
+class AddVoiceCard(ctk.CTkToplevel):
+    open_popup = None
+
+    def __init__(self, config: Config, update_list_callback: callable):
+        if AddVoiceCard.open_popup is not None:
+            AddVoiceCard.open_popup.focus_set()
+            return
+
+        super().__init__()
+        AddVoiceCard.open_popup = self
+        self.config: Config = config
+        self.update_list_callback = update_list_callback
+        self.title(f"Add new ElevenLabs Voice")
+        self.geometry("400x400")
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self.close_popup) 
+
+        self.tts = ElevenLabsTTS(self.config)
+        self.attributes("-topmost", True)
+        self.create_widgets()
+
+
+    def create_widgets(self):
+        label1 = ctk.CTkLabel(self, text="ElevenLabs Voice Id:")
+        label1.pack(pady=(20, 5))
+
+        self.voice_id_var = ctk.StringVar()
+        self.voice_id_input = ctk.CTkEntry(self, width=160, height=30, textvariable=self.voice_id_var)
+        self.voice_id_input.pack(pady=(10,10))
+
+        self.label_warn = ctk.CTkLabel(self, text="", text_color="red")
+        self.label_warn.pack(pady=10)
+
+        self.save_button = ctk.CTkButton(self, text="Add", command=self.save_changes)
+        self.save_button.pack(pady=10)
+
+
+    def save_changes(self):
+        elvoice = self.tts.get_voice_object(voice_id=self.voice_id_var.get(), run_sync_always=True)
+        if elvoice:
+            self.close_popup()
+        else:
+            self.label_warn.configure(text="Voice Id not found!")
+            # keep open and change label to error
+
+
+    def close_popup(self):
+        AddVoiceCard.open_popup = None
+        self.update_list_callback()
+        self.destroy()
