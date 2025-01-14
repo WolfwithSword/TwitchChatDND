@@ -1,15 +1,21 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker, Mapped, mapped_column
-from sqlalchemy import String, Integer, JSON, asc
+from sqlalchemy.orm import sessionmaker, Mapped, mapped_column, relationship
+from sqlalchemy import String, Integer, JSON, asc, ForeignKey, null
 from sqlalchemy.future import select
 
+from custom_logger.logger import logger 
+
 from data.base import Base
+from data.voices import Voice
 
 from sqlalchemy.future import select
 from db import async_session
 
+from data.voices import fetch_voice
+
 # We don't need to pass the DB object around after it's been initialized by main
 # Simply import async_session from it, or objects made from it around
+
 
 class Member(Base):
     __tablename__ = "members"
@@ -18,7 +24,8 @@ class Member(Base):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     pfp_url: Mapped[str] = mapped_column(String, default="")
     num_sessions: Mapped[int] = mapped_column(Integer, default=0) # increment on end/complete session
-    preferred_tts: Mapped[str] = mapped_column(String, default="") # local vs cloud, and what name for tts voice
+    preferred_tts_uid: Mapped[str] = mapped_column(ForeignKey("voices.uid"), nullable=True) 
+    preferred_tts: Mapped[Voice] = relationship("Voice", lazy="subquery")
 
     data: Mapped[dict] = mapped_column(JSON, default=dict) # We can store arbitrary data in here if we need extra columns and stuff later, just need to be safe with checking
     # elsewise, we will need to setup alembic and migrations with an updater script/function/exe
@@ -71,13 +78,29 @@ async def _upsert_member(name: str, pfp_url: str) -> Member:
                 session.add(new_member)
                 return new_member
 
-async def update_tts(member: Member, preferred_tts: str = ""):
+async def update_tts(member: Member, voice_id: str):
     async with async_session() as session:
         async with session.begin():
+            voice_in_db = await fetch_voice(uid=voice_id)
             member_in_db = await session.get(Member, member.id)
-            if member_in_db:
-                member_in_db.preferred_tts = preferred_tts
+            if member_in_db and voice_in_db:
+                member.preferred_tts_uid = voice_id
+                member.preferred_tts = voice_in_db
+
+                member_in_db.preferred_tts_uid = voice_id
+                member_in_db.preferred_tts = voice_in_db
                 await session.commit()
+
+
+async def remove_tts(voice_id: str):
+    if not voice_id:
+        return
+    async with async_session() as session:
+        async with session.begin():
+            result = await session.execute(select(Member).where(Member.preferred_tts_uid == voice_id))
+            for member in result.scalars().all():
+                member.preferred_tts_uid = null()
+            await session.commit()
 
 
 async def fetch_member(name: str) -> Member | None:

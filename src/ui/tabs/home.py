@@ -3,7 +3,7 @@ from custom_logger.logger import logger
 
 from ui.widgets.member_card import MemberCard
 from twitch.chat import ChatController
-from chatdnd.events.chat_events import chat_on_join_queue, chat_bot_on_connect
+from chatdnd.events.chat_events import chat_on_join_queue, chat_bot_on_connect, chat_say_command
 
 
 class HomeTab():
@@ -77,6 +77,52 @@ class HomeTab():
 
         ##################################
 
+        ####### Chat View #######
+
+        # TODO Listen to chat events, display <user>:<msg>. Append to scrollframe, make it move. Make visually distinct?
+        self._chat_frame = ctk.CTkScrollableFrame(self.parent, width=288, height=574)
+        self._chat_frame.place(relx=0.740, rely = 0.057)
+        chat_say_command.addListener(self._add_chat_msg)
+
+        ##################################
+
+
+    def _add_chat_msg(self, member, message):
+        name = member.name
+
+        msg_frame = ctk.CTkFrame(self._chat_frame)
+        msg_frame.pack(fill='x', pady=5, padx=2, anchor='w')
+
+        username_label = ctk.CTkLabel(
+            msg_frame, 
+            text=f"{name}:",
+            font=("Arial", 12, "bold"),
+            text_color="#e8e8e8",
+            justify='left',
+            anchor='nw'
+        )
+        username_label.grid(row=0, column=0, padx=(6,3), pady=(2,4), sticky='nw')
+
+        available_width = self._chat_frame.winfo_width() - 30
+
+        message_label = ctk.CTkLabel(
+            msg_frame, 
+            text=message, 
+            font=("Arial", 12), 
+            wraplength=available_width,
+            text_color="#c8c8c8",
+            justify='left',
+            anchor='w'
+        )
+        message_label.grid(row=1, column=0, padx=(6,2), pady=(2,8), sticky='w')
+
+        self._chat_frame.after(100, self._chat_frame._parent_canvas.yview_moveto(1.0)) # TODO doesnt seem to scroll all the way to bottom?
+
+
+    def _clear_chat_log(self):
+        for widget in self._chat_frame.winfo_children():
+            widget.destroy()
+
 
     def _fill_party_frame(self):
         for child in self._party_frame.winfo_children():
@@ -86,7 +132,7 @@ class HomeTab():
         for index, member in enumerate(sorted(self.chat_ctrl.session_mgr.session.party)):
             row = index // columns
             col = index % columns
-            member_card = MemberCard(self._party_frame, member, width=130, height=170, textsize=10)
+            member_card = MemberCard(self._party_frame, member, self.config, width=130, height=170, textsize=10)
             member_card.grid(row=row, column=col, padx=(35, 10), pady=(12,12), sticky="w")
             
 
@@ -109,6 +155,7 @@ class HomeTab():
         self.start_session.configure(state="normal")
         self.end_button.configure(state="disabled")
         self._fill_party_frame()
+        self._clear_chat_log()
 
 
     def _start_session(self):
@@ -122,6 +169,7 @@ class HomeTab():
             self.start_session.configure(state="disabled")
             self.end_button.configure(state="normal")
             self._fill_party_frame()
+            self._clear_chat_log()
         
 
     def _end_session(self):
@@ -134,6 +182,7 @@ class HomeTab():
         self.start_session.configure(state="disabled")
         self.end_button.configure(state="disabled")
         self._fill_party_frame()
+        self._clear_chat_log()
 
 
     def add_queue_user(self, name):

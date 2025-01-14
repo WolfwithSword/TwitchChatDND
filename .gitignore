@@ -2,6 +2,8 @@ user_token.json
 config.ini
 .tcdnd-cache/
 *.db
+logs/
+*.db-journal
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
