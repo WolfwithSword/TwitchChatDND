@@ -32,7 +32,7 @@ class RedirectSysLogger(object):
 
     def write(self, buf):
         for line in buf.rstrip().splitlines():
-            if line.strip():
+            if line.strip() and len(line.strip()) > 1:
                 self.logger.log(self.level, line.rstrip())
 
     def flush(self):

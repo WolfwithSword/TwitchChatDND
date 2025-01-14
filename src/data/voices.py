@@ -106,6 +106,7 @@ async def fetch_voices(source: str = None, limit: int = 100) -> list[Voice]:
         result = await session.execute(query)
         res =  result.scalars().all()
         if not res and source == 'elevenlabs':
+            logger.info("Adding default ElevenLabs voice 'Will'")
             v = await _upsert_voice(name="Will", uid="bIHbv24MWmeRgasZH58o", source=SOURCE_11L)
             return [v]
         return res

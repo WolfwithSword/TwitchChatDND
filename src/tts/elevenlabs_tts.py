@@ -56,9 +56,10 @@ class ElevenLabsTTS(TTS):
     @property
     def voices(self) -> dict:
         d = {}
-        _voices = run_coroutine_sync(fetch_voices(source='elevenlabs'))
+        _voices = run_coroutine_sync(fetch_voices(source=SOURCE_11L))
         for v in _voices:
-            d.setdefault(f"{v.name} ({v.uid})", v.uid)
+            if v:
+                d.setdefault(f"{v.name} ({v.uid})", v.uid)
         return d
 
     def setup(self):
@@ -95,7 +96,7 @@ class ElevenLabsTTS(TTS):
             return output
         return await fetch_stream(self.client, text, voice_id, MODEL, FORMAT)
 
-    async def get_stream(self, text="Hellow world!", voice_id: str = None):
+    async def get_stream(self, text="Hello World!", voice_id: str = None):
         if not voice_id or not self.client:
             yield None, None
         
