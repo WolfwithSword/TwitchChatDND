@@ -118,6 +118,9 @@ class ServerApp():
                         }
                         await self.animate_member(member.name, "idle")
                         await asyncio.sleep(0.05)
+
+                        if duration < 2.0:
+                            await asyncio.sleep(1.2)
                         await members_queue.put(speech_message)
 
                     await asyncio.sleep(0.1)

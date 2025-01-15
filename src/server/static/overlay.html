@@ -42,37 +42,57 @@
             word-wrap: break-word;
         }
 
-        .speech-bubble {
+        .nameplate {
             position: absolute;
-            top: 50px;
+            bottom: 100%; 
+            left: 8px; 
+            background-color: #333;
+            color: #cccccc;
+            font-size: 24px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            white-space: nowrap;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        .speech-bubble-wrapper {
+            position: absolute;
             left: 16px;
+            top: 50px;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; 
+            gap: 10px;
+        }
+
+        .speech-bubble-wrapper.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .speech-bubble {
+            position: relative;
             background-color: #e0e0e0;
             color: black !important;
             padding: 10px;
             line-height: 1.5;
             border-radius: 8px;
             font-size: 28px;
-            opacity: 0;
-            visibility: hidden;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             word-wrap: break-word;
             text-align: left;
-            transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
             animation: none;
             max-width: 50%;
-            white-space: nowrap;
+            min-width: 340px;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
             overflow: hidden;
-        }
-
-        .speech-bubble.active {
-            opacity: 1;
-            visibility: visible;
-            transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
         }
 
         .speech-bubble span {
             display: inline-block;
-            /* opacity: 0; */
             font-size: 28px;
             animation: typing 0.5s steps(30, end) forwards;
             color: black !important;
@@ -349,19 +369,31 @@
                 return;
             }
 
+            const nameplate = document.createElement('div');
+            nameplate.classList.add('nameplate');
+            nameplate.innerText = name;
+
+            const speechBubbleWrapper = document.createElement('div');
+            speechBubbleWrapper.classList.add('speech-bubble-wrapper', 'hidden');
+            
             const speechBubble = document.createElement('div');
             speechBubble.classList.add('speech-bubble');
-            
             const messageSpan = document.createElement('span');
             messageSpan.innerText = ''; 
             speechBubble.appendChild(messageSpan);
-
-            document.body.appendChild(speechBubble);
+            
+            speechBubbleWrapper.appendChild(nameplate);
+            speechBubbleWrapper.appendChild(speechBubble);
+            document.body.appendChild(speechBubbleWrapper);
 
             const userCardsRect = userCards[0].getBoundingClientRect();
             let topOffset = userCardsRect.top - 40; 
 
-            speechBubble.style.top = `${topOffset}px`;
+            speechBubbleWrapper.style.top = `${topOffset}px`;
+
+            setTimeout(() => {
+                speechBubbleWrapper.classList.remove('hidden');
+            }, 25);
 
             const letters = message.split('');
             let currentText = '';
@@ -390,25 +422,26 @@
                                 hasWrapped = true; 
                             }
                             topOffset = userCardsRect.top - 40 - (lines - 1) * lineHeight;
-                            speechBubble.style.top = `${topOffset}px`;
+                            speechBubbleWrapper.style.top = `${topOffset}px`;
                         }
+                        nameplate.style.bottom = `${bubbleHeight}px`
                     }
 
-                    if (index === 0) {
-                        speechBubble.classList.add('active');
-                    }
+                    // if (index === 0) {
+                    //     speechBubbleWrapper.classList.add('active');
+                    // }
                 }, index * 55); 
             });
         }
 
         function clearSpeechBubbles(immediately) {
             
-            const speechBubble = document.querySelector(".speech-bubble");
-            if (!speechBubble) {
+            const speechBubbleWrapper = document.querySelector(".speech-bubble-wrapper");
+            if (!speechBubbleWrapper) {
                 return;
             }
             if (immediately) {
-                speechBubble.remove();
+                speechBubbleWrapper.remove();
                 const userCards = document.querySelectorAll('.user-card');
                 userCards.forEach((card) => {
                     let _name = card.querySelector('span').textContent;
@@ -422,8 +455,10 @@
                 });
             }
             else {
+                speechBubbleWrapper.style.transition = "opacity 0.3s ease-out, visibility 0.5s ease-out";
+                speechBubbleWrapper.style.opacity = "0";
                 setTimeout(() => {
-                    speechBubble.remove();
+                    speechBubbleWrapper.remove();
                 }, 1750);
             }
         }
