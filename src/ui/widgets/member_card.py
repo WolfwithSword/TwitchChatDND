@@ -102,9 +102,10 @@ class MemberEditCard(ctk.CTkToplevel):
             current_source = db_member.preferred_tts.source
         
         self.tts_source_var = ctk.StringVar(value=current_source)
+        valid_sources = SOURCES[:]
         if not self.config.get(section="ELEVENLABS", option="api_key"):
-            SOURCES.remove(SOURCE_11L)
-        self.tts_source_dropdown = ctk.CTkOptionMenu(self, values=SOURCES, variable=self.tts_source_var, command=self._update_voicelist)
+            valid_sources.remove(SOURCE_11L)
+        self.tts_source_dropdown = ctk.CTkOptionMenu(self, values=valid_sources, variable=self.tts_source_var, command=self._update_voicelist)
 
         voices = self.tts[current_source].get_voices()
         self.tts_options = list(voices.keys())
