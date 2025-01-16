@@ -15,7 +15,7 @@ class Voice(Base):
     __tablename__ = "voices"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String, unique=True, nullable=False) # Unique?
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False) # Unique? May need to request them to rename voice?
     uid: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     source: Mapped[str] = mapped_column(String, default=SOURCE_LOCAL, nullable=False)
 

@@ -65,6 +65,8 @@
             flex-direction: column;
             align-items: flex-start; 
             gap: 10px;
+            width: 50%;
+            max-width: 50%;
         }
 
         .speech-bubble-wrapper.hidden {
@@ -84,8 +86,11 @@
             word-wrap: break-word;
             text-align: left;
             animation: none;
-            max-width: 50%;
-            min-width: 340px;
+            width: 100% !important;
+            /* max-width: 50%; */
+            /* min-width: 50% !important; */
+            /* width: 50%; */
+            /* min-width: 340px; */
             white-space: pre-wrap;
             overflow-wrap: break-word;
             overflow: hidden;
@@ -430,7 +435,7 @@
                     // if (index === 0) {
                     //     speechBubbleWrapper.classList.add('active');
                     // }
-                }, index * 55); 
+                }, index * 42); 
             });
         }
 
