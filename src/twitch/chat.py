@@ -96,12 +96,7 @@ class ChatController(Chat):
         logger.info("Bot is ready")
         self.send_message(text="Chat DnD is now active! ⚔️🐉")
         await ready_event.chat.join_room(self.channel.display_name)
-        
-        #### TODO remove, this is for testing without needing to start a whole session setup and activate.
-        self.chat.register_command('saytest', self._say, command_middleware=[
-                                                                    ChannelCommandCooldown(10),
-                                                                    ChannelUserCommandCooldown(15) ]) # TODO config cooldown times
-    
+
     
     def send_message(self, text: str):
         logger.debug(f"Sending chat msg: {text}")
@@ -150,7 +145,7 @@ class ChatController(Chat):
         user: TwitchUser = await self.twitch_utils.get_user_by_name(username=cmd.user.name)
         if not user:
             return
-        # TODO idea, provide other stats like vip/mod/status/badges? Can always fetch from twitchAPI especially since we cache for a week, aka no risk
+        # TODO idea, provide other stats like vip/mod/status/badges? Can always fetch from twitchAPI especially since we cache for a week, aka no risk 
         # TODO we also want a default pfp perhaps if non exists
         member = await create_or_get_member(name=cmd.user.display_name, pfp_url = user.profile_image_url)
         if member not in self.session_mgr.session.queue:
