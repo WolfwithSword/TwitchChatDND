@@ -289,9 +289,13 @@
                     animateUser(data.name, data.animation);
                 } else if (data.type === 'speech') {
                     clearSpeechBubbles(true);
-                    addSpeechBubble(data.name, data.message);
+                    setTimeout(() => {
+                        addSpeechBubble(data.name, data.message);
+                    }, 100);
                 } else if (data.type === 'endspeech') {
-                    clearSpeechBubbles(false);
+                    setTimeout( () => {
+                        queryRemoveSpeechBubble();
+                    }, 1500);
                 }
                 console.log(data)
             };
@@ -308,6 +312,17 @@
                 ws = null;
                 attemptMembersReconnect(); 
             };
+        }
+
+        function queryRemoveSpeechBubble(){
+            if (!isPlaying) {
+                clearSpeechBubbles(false);
+            }
+            else {
+                setTimeout( () => {
+                    queryRemoveSpeechBubble();
+                }, 750);
+            }
         }
 
         function attemptMembersReconnect() {
@@ -366,7 +381,6 @@
 
 
         function addSpeechBubble(name, message) {   
-            // TODO: Display username on top of speech bubble
             const userCards = document.querySelectorAll('.user-card');
     
             if (userCards.length === 0) {
