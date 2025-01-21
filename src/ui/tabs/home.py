@@ -116,7 +116,7 @@ class HomeTab():
         )
         message_label.grid(row=1, column=0, padx=(6,2), pady=(2,8), sticky='w')
 
-        self._chat_frame.after(100, self._chat_frame._parent_canvas.yview_moveto(1.0)) # TODO doesnt seem to scroll all the way to bottom?
+        self._chat_frame.after(100, lambda: self._chat_frame._parent_canvas.yview_moveto(1.0)) # TODO doesnt seem to scroll all the way to bottom?
 
 
     def _clear_chat_log(self):
