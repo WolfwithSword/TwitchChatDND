@@ -56,6 +56,7 @@ class MemberCard(ctk.CTkFrame):
             self.bg_label.bind("<Button-1>", self.open_edit_popup)
 
     def open_edit_popup(self, event=None):
+        self.member = run_coroutine_sync(fetch_member(name=self.member.name))
         MemberEditCard(self.member, self.config)
 
 class MemberEditCard(ctk.CTkToplevel):
@@ -76,7 +77,7 @@ class MemberEditCard(ctk.CTkToplevel):
         self.protocol("WM_DELETE_WINDOW", self.close_popup) 
 
         self.tts = {
-            SOURCE_LOCAL: LocalTTS(self.config),
+            SOURCE_LOCAL: LocalTTS(self.config, False),
             SOURCE_11L: ElevenLabsTTS(self.config)
         }
 

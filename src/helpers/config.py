@@ -28,6 +28,12 @@ class TCDNDConfig(configparser.ConfigParser):
         if not self.get(section="BOT", option="join_command", fallback=None):
             needs_init = True
             self.set(section="BOT", option="join_command", value="join")
+        if not self.get(section="BOT", option="voices_command", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="voices_command", value="voices")
+        if not self.get(section="BOT", option="voice_command", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="voice_command", value="voice")
 
         if not self.has_section("SERVER"):
             needs_init = True

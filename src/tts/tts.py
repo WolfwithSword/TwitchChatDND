@@ -39,3 +39,9 @@ class TTS():
     
     async def get_stream(self):
         yield (None, 0)
+
+    def list_voices(self) -> list:
+        return list()
+
+    def voice_list_message(self) -> str:
+        return "Available Voices: " + ", ".join(self.list_voices())

@@ -69,13 +69,31 @@ async def _upsert_voice(name: str, uid: str, source: str) -> Voice | None:
                 return new_voice
 
 
-async def delete_voice(uid: str = None, source: str = None) -> bool:
+async def get_all_voice_ids(source: str) -> list:
+    async with async_session() as session:
+        query = select(Voice.uid)
+        if source:
+            query = query.where(Voice.source == source)
+        result = await session.execute(query)
+        return result.scalars().all()
+
+
+async def delete_voice(uid: str | list = None, source: str = None) -> bool:
     if not uid:
         return False
     async with async_session() as session:
-        voice = await fetch_voice(uid=uid, source=source)
-        if voice:
-            await session.delete(voice)
+        if type(uid) == str:
+            voice = await fetch_voice(uid=uid, source=source)
+            if voice:
+                await session.delete(voice)
+                await session.commit()
+                return True
+        elif type(uid) == list:
+            query = select(Voice).where(Voice.uid.in_(uid))
+            result = await session.execute(query)
+            voices = result.scalars().all()
+            for voice in voices:
+                await session.delete(voice)
             await session.commit()
             return True
         return False

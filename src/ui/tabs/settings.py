@@ -80,6 +80,25 @@ class SettingsTab():
 
         twitchutils_twitch_on_connect_event.addListener(self._update_twitch_connect)
 
+        row += 1
+        column = 3
+        voice_cmd_label = ctk.CTkLabel(self.parent, text="Set Voice Command")
+        voice_cmd_label.grid(row=row, column=column, padx=(10,10), pady=(10,2))
+        column+=1
+        voices_cmd_label = ctk.CTkLabel(self.parent, text="List Voices Command")
+        voices_cmd_label.grid(row=row, column=column, padx=(10,10), pady=(10,2))
+        row += 1
+        column -= 1
+        self.voice_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="voice_command", fallback=''))
+        voice_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white", placeholder_text="join", text_color="black", textvariable=self.voice_cmd_var)
+        voice_cmd_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
+        voice_cmd_entry.configure(justify="center")
+        column += 1
+        self.listvoice_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="voices_command", fallback=''))
+        voices_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white", placeholder_text="say", text_color="black", textvariable=self.listvoice_cmd_var)
+        voices_cmd_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
+        voices_cmd_entry.configure(justify="center")
+
         ########################
 
         ####### Web Srv ########
@@ -135,12 +154,15 @@ class SettingsTab():
         column += 3
 
         # could undo some of these self's if in a method?
+        self.add_import_button = ctk.CTkButton(self.parent,height=30, text="Import All", command=self._import_e11_all)
+        self.add_import_button.grid(row=row, column=column, padx=10, pady=(2,10), sticky='n')
+
         self.add_v_button = ctk.CTkButton(self.parent,height=30, text="Add Voice", command=self.open_edit_popup)
-        self.add_v_button.grid(row=row, column=column, padx=10, pady=(2,10), sticky='n')
+        self.add_v_button.grid(row=row, column=column, padx=10, pady=(52,10), sticky='n')
         self.del_v_button = ctk.CTkButton(self.parent,height=30, text="Remove Voice", fg_color="#b1363d", hover_color="#772429", command=self._delete_voice)
-        self.del_v_button.grid(row=row, column=column, padx=10, pady=(42,10), sticky='n')
+        self.del_v_button.grid(row=row, column=column, padx=10, pady=(92,10), sticky='n')
         self.preview_v_button = ctk.CTkButton(self.parent,height=30, text="Preview Voice", command=self._preview_e11_voice)
-        self.preview_v_button.grid(row=row, column=column, padx=10, pady=(138,10), sticky='n')
+        self.preview_v_button.grid(row=row, column=column, padx=10, pady=(168,10), sticky='n')
 
         on_elevenlabs_connect.addListener(self._update_elevenlabs_connection)
         request_elevenlabs_connect.trigger()
@@ -160,6 +182,13 @@ class SettingsTab():
         else:
             self.del_v_button.configure(state="disabled")
             self.preview_v_button.configure(state="disabled")
+
+
+    def _import_e11_all(self):
+        client = ElevenLabsTTS(self.config)
+        success = client.import_all(True)
+        if success:
+            self._update_voice_list()
 
 
     def _preview_e11_voice(self):
@@ -208,6 +237,8 @@ class SettingsTab():
         self.config.set(section="BOT", option="prefix", value=str(self.prefix_var.get()))
         self.config.set(section="BOT", option="speak_command", value=self.speak_cmd_var.get().strip())
         self.config.set(section="BOT", option="join_command", value=self.join_cmd_var.get().strip())
+        self.config.set(section="BOT", option="voice_command", value=self.voice_cmd_var.get().strip())
+        self.config.set(section="BOT", option="voices_command", value=self.listvoice_cmd_var.get().strip())
         self.config.set(section="TWITCH", option="channel", value=self.channel_var.get())
         self.config.write_updates()
         ui_settings_twitch_channel_update_event.trigger([True, self.twitch_utils, 5])
@@ -218,9 +249,11 @@ class SettingsTab():
             self.e11labs_con_label.configure(text="ElevenLabs Connected", text_color="green")
             self._update_voice_list()
             self.add_v_button.configure(state="normal")
+            self.add_import_button.configure(state="normal")
         else:
             self.e11labs_con_label.configure(text="ElevenLabs Disconnected", text_color="red")
             self.add_v_button.configure(state="disabled")
+            self.add_import_button.configure(state="disabled")
             if self.e11_voices.size():
                 self.e11_voices.selection_clear()
                 while self.e11_voices.size():

@@ -7,17 +7,21 @@ from twitchAPI.type import ChatEvent
 from twitch.utils import TwitchUtils
 
 from data import Member
-from data.member import create_or_get_member, fetch_member
+from data.member import create_or_get_member, fetch_member, update_tts
 from chatdnd import SessionManager
 
 from custom_logger.logger import logger
 
 from helpers import TCDNDConfig as Config
 from helpers import Event
+from helpers.constants import SOURCE_11L, SOURCE_LOCAL
 
 from chatdnd.events.ui_events import ui_settings_bot_settings_update_event, ui_settings_twitch_channel_update_event
 from chatdnd.events.chat_events import *
 from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_event
+
+from tts import ElevenLabsTTS, LocalTTS
+
 
 class ChatController(Chat):
     def __init__(self, session_mgr: SessionManager, config: Config):
@@ -64,12 +68,21 @@ class ChatController(Chat):
 
         self.command_list['join'] = self.config.get(section="BOT", option="join_command")
         self.command_list['say'] = self.config.get(section="BOT", option="speak_command")
+        self.command_list['voices'] = self.config.get(section="BOT", option="voices_command")
+        self.command_list['voice'] = self.config.get(section="BOT", option="voice_command")
+
+        self.chat.register_command(self.command_list['voices'], 
+            self._get_voices, command_middleware=[ChannelCommandCooldown(10),
+                                            ChannelUserCommandCooldown(15) ])
+        self.chat.register_command(self.command_list['voice'], 
+            self._set_voice, command_middleware=[ChannelUserCommandCooldown(10)])
 
         ui_settings_bot_settings_update_event.addListener(self.update_bot_settings)
 
         self.chat.start()
         chat_bot_on_connect.trigger([self.chat.is_connected()])
         
+
     def update_bot_settings(self):
         if not self.chat:
             return
@@ -83,6 +96,15 @@ class ChatController(Chat):
                 self._say, command_middleware=[UserRestriction(allowed_users=[x.name for x in self.session_mgr.session.party]),
                                           ChannelCommandCooldown(10), # TODO Config cooldown times
                                           ChannelUserCommandCooldown(15) ])
+        if self.chat.unregister_command(self.command_list['voices']):
+            self.command_list['voices'] = self.config.get(section="BOT", option="voices_command")
+            self.chat.register_command(self.command_list['voices'], 
+                self._get_voices, command_middleware=[ChannelCommandCooldown(10), # TODO Config cooldown times
+                                               ChannelUserCommandCooldown(15) ])
+        if self.chat.unregister_command(self.command_list['voice']):
+            self.command_list['voice'] = self.config.get(section="BOT", option="voice_command")
+            self.chat.register_command(self.command_list['voice'], 
+                self._set_voice, command_middleware=[ChannelUserCommandCooldown(10)])
         # self.end_session()
 
 
@@ -162,3 +184,54 @@ class ChatController(Chat):
             # Event trigger *does* work here
             member = await fetch_member(cmd.user.name.lower())
             chat_say_command.trigger([member, cmd.parameter])
+
+
+    async def _get_voices(self, cmd: ChatCommand):
+        param = cmd.parameter
+        if not param or param.upper().strip() not in [SOURCE_LOCAL.upper(), "11L", SOURCE_11L.upper()]:
+            await cmd.reply(f"@{cmd.user.display_name} available TTS types are 'local', '11L'. Try {self.chat._prefix}{self.command_list['voices']} <type>")
+            return
+        param = param.upper().strip()
+        msg = ""
+        if param == SOURCE_LOCAL.upper():
+            tts = LocalTTS(self.config, False)
+            msg = tts.voice_list_message()
+        elif param in [SOURCE_11L.upper(), '11L']:
+            msg = ElevenLabsTTS.voices_messages()
+        if not msg:
+            return
+        await cmd.reply(msg)
+
+
+    async def _set_voice(self, cmd: ChatCommand):
+        param = cmd.parameter
+        if not param or not param.strip():
+            await cmd.reply(f"@{cmd.user.display_name} Please specify a voice to set to. Find voices using {self.chat._prefix}{self.command_list['voices']} <type>")
+            return
+        param = param.strip()
+        voice_id = ""
+
+        # Try each TTS
+        if not voice_id:
+            tts = LocalTTS(self.config, False)
+            voice_id = tts.get_voice_id_by_friendly_name(param)
+
+        if not voice_id:
+            tts = ElevenLabsTTS(self.config, False)
+            voice = tts.search_for_voice_by_id(param)
+            if voice:
+                voice_id = voice.voice_id
+
+        msg = ""
+
+        if voice_id:
+            user: TwitchUser = await self.twitch_utils.get_user_by_name(username=cmd.user.name)
+            if user:
+               member = await create_or_get_member(name=cmd.user.display_name, pfp_url = user.profile_image_url)
+               await update_tts(member, voice_id)
+               msg = f"@{cmd.user.display_name} Successfully set TTS voice!"
+            else:
+                msg = f"@{cmd.user.display_name} Error setting TTS voice!"
+        else:
+            msg = f"@{cmd.user.display_name} Could not set TTS voice. Voice not available or not found."
+        await cmd.reply(msg)
