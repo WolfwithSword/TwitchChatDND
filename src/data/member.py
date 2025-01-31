@@ -83,7 +83,10 @@ async def update_tts(member: Member, voice_id: str):
         async with session.begin():
             voice_in_db = await fetch_voice(uid=voice_id)
             member_in_db = await session.get(Member, member.id)
-            if member_in_db and voice_in_db:
+            if member_in_db and voice_in_db and (member_in_db.preferred_tts_uid != voice_id 
+                                                 or member.preferred_tts_uid != voice_id 
+                                                 or member.preferred_tts != voice_in_db 
+                                                 or member_in_db.preferred_tts != voice_in_db):
                 member.preferred_tts_uid = voice_id
                 member.preferred_tts = voice_in_db
 
@@ -92,12 +95,20 @@ async def update_tts(member: Member, voice_id: str):
                 await session.commit()
 
 
-async def remove_tts(voice_id: str):
+async def remove_tts(voice_id: str | list):
     if not voice_id:
         return
     async with async_session() as session:
         async with session.begin():
-            result = await session.execute(select(Member).where(Member.preferred_tts_uid == voice_id))
+            result = None
+            if type(voice_id) == str:
+                result = await session.execute(select(Member).where(Member.preferred_tts_uid == voice_id))
+            elif type(voice_id) == list:
+                result = await session.execute(select(Member).where(Member.preferred_tts_uid.in_(voice_id)))
+
+            if not result:
+                return
+    
             for member in result.scalars().all():
                 member.preferred_tts_uid = null()
             await session.commit()

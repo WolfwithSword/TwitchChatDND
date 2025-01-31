@@ -18,7 +18,8 @@ from custom_logger.logger import logger
 
 from chatdnd.events.tts_events import on_elevenlabs_connect, request_elevenlabs_connect, on_elevenlabs_test_speak
 
-from data.voices import _upsert_voice, fetch_voices
+from data.voices import _upsert_voice, fetch_voices, get_all_voice_ids, delete_voice
+from data.member import remove_tts
 from data import Voice
 
 FORMAT = 'pcm_22050' # Match local tts quality, not top but still good
@@ -74,6 +75,17 @@ class ElevenLabsTTS(TTS):
 
                 self.client = AsyncElevenLabs(api_key=key)
                 if self.full_instance:
+                    # Remove all voices from system if they are not available on the account anymore
+                    available_voices = [v.voice_id for v in test_client.voices.get_all().voices]
+                    db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=SOURCE_11L))
+                    unavailable_voices = []
+                    for uid in db_voice_ids:
+                        if uid not in available_voices:
+                            unavailable_voices.append(uid)
+                    
+                    if unavailable_voices:
+                        result0 = run_coroutine_sync(remove_tts(voice_id=unavailable_voices))
+                        result1 = run_coroutine_sync(delete_voice(uid=unavailable_voices, source=SOURCE_11L))
                     on_elevenlabs_connect.trigger([True])
             except Exception as e:
                 logger.warn(f"ElevenLabs Exception: {e}")
@@ -113,7 +125,38 @@ class ElevenLabsTTS(TTS):
             chunk = output.read(chunk_size)
 
 
-    def get_voice_object(self, voice_id: str = "", run_sync_always: bool = False) -> ELVoice | None :
+    def import_all(self, run_sync_always: bool = False) -> bool:
+        did_import = False
+        if key := self.config.get(section="ELEVENLABS", option="api_key"):
+            client = ElevenLabs(api_key=key)
+
+            try:
+                user = client.user.get()
+            except Exception:
+                return False
+
+            available_voices = [v.voice_id for v in client.voices.get_all().voices]
+            db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=SOURCE_11L))
+
+            unavailable_voices = []
+            for uid in db_voice_ids[:]:
+                if uid not in available_voices:
+                    unavailable_voices.append(uid)
+                    db_voice_ids.remove(uid)
+                    did_import = True
+            
+            if unavailable_voices:
+                result0 = run_coroutine_sync(remove_tts(voice_id=unavailable_voices))
+                result1 = run_coroutine_sync(delete_voice(uid=unavailable_voices, source=SOURCE_11L))
+                
+            for uid in available_voices:
+                if uid not in db_voice_ids:
+                    r = self.get_voice_object(voice_id=uid, run_sync_always=run_sync_always)
+                    if r:
+                        did_import = True
+        return did_import
+
+    def get_voice_object(self, voice_id: str = "", run_sync_always: bool = False) -> ELVoice | None:
         # Voice by id, will attempt to find it and cache it
         if not voice_id or not self.config.get(section="ELEVENLABS", option="api_key", fallback=None):
             return None
@@ -124,25 +167,50 @@ class ElevenLabsTTS(TTS):
             v = self.cache.get(key=key, default=None)
             if v:
                 logger.debug(f"Fetched cached preview audio for `{voice_id}`")
-
+    
         if not v:
             client = ElevenLabs(api_key=self.config.get(section="ELEVENLABS", option="api_key"))
             v = None
             try:
+                x = client.voices.get_all().voices
+                y = [o.voice_id for o in x]
+                if voice_id not in y:
+                    logger.warn(f"Elevenlabs Voice Id '{voice_id}' is not added to your account. Cannot fetch")
+                    return None
                 v = client.voices.get(voice_id)
-            except:
+            except Exception as e:
+                logger.error(e)
                 pass
             if v:
                 self.cache.set(key=key, expire=self.config.getint(section="CACHE", option="tts_cache_expiry", fallback=7*24*60*60*4*3), value=v)
 
         if v:
-            if run_coroutine_sync:
+            if run_sync_always:
                 run_coroutine_sync(_upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L))
             elif loop := asyncio.get_event_loop():
                 asyncio.create_task(_upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L))
             else:
                 run_coroutine_sync(_upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L))
         return v
+
+
+    def list_voices(self) -> list:
+        return list(self.voices.keys())
+
+
+    def search_for_voice_by_id(self, uid: str) -> ELVoice | None:
+        if not uid:
+            return None
+        return self.get_voice_object(voice_id = uid, run_sync_always=False)
+
+
+    @staticmethod
+    def voices_messages() -> str:
+        return "Search for AI voices here and copy their voice-id: https://elevenlabs.io/app/voice-library - the streamer needs the voice-id added to their library for it to work!"
+
+
+    def voice_list_message(self) -> str:
+        return ElevenLabsTTS.voices_messages()
 
 
     def test_speak(self, text:str = "Hello there. How are you?", voice_id: str = None):
