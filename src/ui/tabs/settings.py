@@ -14,9 +14,8 @@ from chatdnd.events.chat_events import *
 from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_event
 from chatdnd.events.tts_events import request_elevenlabs_connect, on_elevenlabs_connect, on_elevenlabs_test_speak, on_elevenlabs_subscription_update
 
+from ui.widgets.CTkFloatingNotifications import NotifyType
 from win11toast import notify
-
-from ui.widgets.CTkFloatingNotifications import NotificationManager, NotifyType
 
 class SettingsTab():
     # TODO Someone, please, clean this POS up. I'm begging. Nvm it's actually sorta clean, not really, but good enough
@@ -28,9 +27,6 @@ class SettingsTab():
 
         self.startup = True
         
-        # TODO make this a top-level for ui app, and trigger by events passing in level/msg/duration
-        self.notification_manager = NotificationManager(parent._parent_frame.master.master)
-
         header_font = ctk.CTkFont(family="Helvetica", size=20, weight="bold")
 
         row=0
@@ -263,8 +259,8 @@ class SettingsTab():
 
     def _update_elevenlabs_usage(self, count:int, limit: int):
         self.e11labs_usage_label.configure(text=f"{limit-count}/{limit} | {abs(((limit-count)*100)//limit)}% Remaining")
-        if limit-count < self.config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
-            self.notification_manager.show_notification("ElevenLabs credit usage warning!", NotifyType.WARNING, bg_color="#202020", text_color="#b0b0b0", duration=10000)
+        if limit-count < 500000000:#self.config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
+            ui_request_floating_notif.trigger(["ElevenLabs credit usage warning!", NotifyType.WARNING, {"bg_color": "#202020", "text_color": "#b0b0b0", "duration": 10000}])
             # TODO check that current OS is windows for this
             # TODO if multi-platform, setup a notifier package/module for crossplatform and call event to there
             notify("ChatDnD", "Your available Elevenlabs character count is low", 
@@ -289,7 +285,7 @@ class SettingsTab():
             self.add_v_button.configure(state="normal")
             self.add_import_button.configure(state="normal")
             if not self.startup:
-                self.notification_manager.show_notification("ElevenLabs connected!", NotifyType.INFO, bg_color="#202020", text_color="#b0b0b0")
+                ui_request_floating_notif.trigger(["ElevenLabs connected!", NotifyType.INFO])
         else:
             self.e11labs_con_label.configure(text="ElevenLabs Disconnected", text_color="red")
             self.add_v_button.configure(state="disabled")
@@ -303,18 +299,18 @@ class SettingsTab():
             self.preview_v_button.configure(state="disabled")
             self.parent.focus()
             if self.config.get(section="ELEVENLABS", option="api_key") and not self.startup:
-                self.notification_manager.show_notification("ElevenLabs disconnected!", NotifyType.WARNING, bg_color="#202020", text_color="#b0b0b0")
+                ui_request_floating_notif.trigger(["ElevenLabs disconnected!", NotifyType.WARNING])
 
 
     def _update_bot_connection(self, status: bool):
         if status:
             self.chat_con_label.configure(text="Chat Connected", text_color="green")
             if not self.startup:
-                self.notification_manager.show_notification("Twitch Chatbot connected!", NotifyType.INFO, bg_color="#202020", text_color="#b0b0b0")
+                ui_request_floating_notif.trigger(["Twitch Chatbot connected!", NotifyType.INFO])
         else:
             self.chat_con_label.configure(text="Chat Disconnected", text_color="red")
             if not self.startup:
-                self.notification_manager.show_notification("Twitch Chatbot disconnected!", NotifyType.WARNING, bg_color="#202020", text_color="#b0b0b0")
+                ui_request_floating_notif.trigger(["Twitch Chatbot disconnected!", NotifyType.WARNING])
             self.parent.focus()
 
 

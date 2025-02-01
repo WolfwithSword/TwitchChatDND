@@ -7,6 +7,7 @@ from _version import __version__ as app_version
 from ui.tabs.home import HomeTab
 from ui.tabs.settings import SettingsTab
 from ui.tabs.users import UsersTab
+from ui.widgets.CTkFloatingNotifications import NotificationManager, NotifyType
 
 from chatdnd import SessionManager
 from twitch.chat import ChatController
@@ -18,6 +19,8 @@ from helpers import TCDNDConfig as Config
 from twitch.utils import TwitchUtils
 
 from helpers.utils import get_resource_path
+
+from chatdnd.events.ui_events import ui_request_floating_notif
 
 class DesktopApp(ctk.CTk):
     
@@ -41,8 +44,12 @@ class DesktopApp(ctk.CTk):
         self.tabview = CTkScrollableTabView(self, anchor="w")
         self.tabview.pack(fill='both', expand=True)
 
+        self.notification_manager = NotificationManager(self)
+        ui_request_floating_notif.addListener(self._show_floating_notif)
+
         self._setup_tabs()
-    
+
+
     def _setup_tabs(self):
 
         home_tab = self.tabview.add("Home", scrollable=False)
@@ -54,11 +61,24 @@ class DesktopApp(ctk.CTk):
         users = UsersTab(users_tab, self.chat_ctrl)
         settings = SettingsTab(settings_tab, self.config, self.twitch_utils)
 
+
     def button_callback(self):
         logger.info("Test")
+
 
     def on_close(self):
         logger.info("Shutting down...") 
         self.running = False
         self.destroy()
 
+
+    def _show_floating_notif(self, text: str, _type: NotifyType, data: dict = {}):
+        if text and _type:
+            if data is not None and type(data) == dict:
+                data.setdefault("bg_color", "#202020")
+                data.setdefault("text_color", "#b0b0b0")
+                data.setdefault("duration", 6000)
+                self.notification_manager.show_notification(text, _type, **data)
+            
+            else:
+                self.notification_manager.show_notification(text, _type)
