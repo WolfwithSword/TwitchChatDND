@@ -253,7 +253,7 @@ class SettingsTab():
 
     def _update_elevenlabs_usage(self, count:int, limit: int):
         self.e11labs_usage_label.configure(text=f"{limit-count}/{limit} | {abs(((limit-count)*100)//limit)}% Remaining")
-        if limit-count < 500: # TODO good limits so it doesn't spam on request?
+        if limit-count < self.config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
             # TODO check that current OS is windows for this
             # TODO if multi-platform, setup a notifier package/module for crossplatform and call event to there
             notify("ChatDnD", "Your available Elevenlabs character count is low", 
