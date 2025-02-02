@@ -55,7 +55,7 @@ def run_migrations():
     logger.info("Running DB Migrations...")
     alembic_cfg = AlembicConfig("alembic.ini")
     if getattr(sys, 'frozen', False):
-        script_location = os.path.join(sys._MEIPASS, "migrations")
+        script_location =os.path.join(os.path.dirname(__file__), "migrations")
     else:
         script_location =os.path.join(os.path.dirname(__file__), "..", "migrations")
     alembic_cfg.set_main_option("script_location", script_location)
