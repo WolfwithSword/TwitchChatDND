@@ -18,6 +18,12 @@ import static_ffmpeg
 
 from queue import Queue
 _tasks = Queue()
+
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+    src_path = os.path.join(base_path, 'src')
+    sys.path.insert(0, src_path)
+
 import helpers.event as _event_module
 setattr(sys.modules[_event_module.__name__], '_task_queue', _tasks)
 
@@ -26,6 +32,7 @@ from twitch.chat import ChatController
 from twitchAPI.type import TwitchAuthorizationException
 
 from helpers import TCDNDConfig as Config
+from helpers.utils import get_resource_path
 from ui.app import DesktopApp
 from server.app import ServerApp
 
@@ -42,7 +49,26 @@ logger.info("Setting up ffmpeg...")
 static_ffmpeg.add_paths()
 logger.info("Done setting up ffmpeg")
 
+from alembic.config import Config as AlembicConfig
+from alembic import command as alembic_command
+
+def run_migrations():
+    logger.info("Running DB Migrations...")
+    if getattr(sys, 'frozen', False):
+        alembic_cfg = AlembicConfig(os.path.join(cwd, 'alembic.ini'))
+        script_location = os.path.join(cwd, 'migrations')
+    else:
+        alembic_cfg = AlembicConfig(os.path.join(cwd, 'alembic.ini'))
+        script_location = os.path.join(os.path.dirname(__file__), "..", "migrations")
+    logger.info(f"DB Migrations config: {alembic_cfg.config_file_name}")
+    logger.info(f"DB Migrations folder: {script_location}")
+    alembic_cfg.set_main_option("script_location", script_location)
+
+    alembic_command.upgrade(alembic_cfg, "head")
+    logger.info("Finished DB Migrations")
+
 async def run_db_init():
+    run_migrations()
     await initialize_database()
 asyncio.run(run_db_init())#"DB-Setup"
 
