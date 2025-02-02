@@ -208,7 +208,6 @@ class SettingsTab():
 
         val = self._validate_is_number(val, _min=1)
         if val != self.el_warning_var.get():
-            val = re.sub(r"[^0-9]", "", val)
             self.el_warning_var.set(val)
 
 
