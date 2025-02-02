@@ -42,7 +42,23 @@ logger.info("Setting up ffmpeg...")
 static_ffmpeg.add_paths()
 logger.info("Done setting up ffmpeg")
 
+from alembic.config import Config as AlembicConfig
+from alembic import command as alembic_command
+
+def run_migrations():
+    logger.info("Running DB Migrations...")
+    alembic_cfg = AlembicConfig("alembic.ini")
+    if getattr(sys, 'frozen', False):
+        script_location = os.path.join(sys._MEIPASS, "migrations")
+    else:
+        script_location =os.path.join(os.path.dirname(__file__), "..", "migrations")
+    alembic_cfg.set_main_option("script_location", script_location)
+
+    alembic_command.upgrade(alembic_cfg, "head")
+    logger.info("Finished DB Migrations")
+
 async def run_db_init():
+    run_migrations()
     await initialize_database()
 asyncio.run(run_db_init())#"DB-Setup"
 

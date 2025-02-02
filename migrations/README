@@ -1,0 +1,7 @@
+Generic single-database configuration.
+
+To add a new migration, run from root folder: `alembic revision --autogenerate -m "Message Here"`
+
+To apply/upgrade db, run: `alembic upgrade head`
+
+To set force your current db to be registered as the latest revision in case of issue, `alembic stamp head` (for dev use only)

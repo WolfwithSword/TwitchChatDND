@@ -74,12 +74,15 @@ jobs:
       
       - name: Copy Resources
         run: |
+          mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/images
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server/static
           mv images/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/images
           mv src/server/static/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server/static
+          mv migrations/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
+          mv alembic.ini dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/alembic.ini
 
 
       - name: Deploy Artifacts
