@@ -67,7 +67,7 @@ def check_for_updates():
     if current_version == 'dev':
         return f"https://github.com/{owner}/{repo}/releases/tag/{latest}"
     elif 'nightly' in current_version:
-        return f"https://github.com/{owner}/{repo}/releases/tag/{nightly}"
+        return f"https://github.com/{owner}/{repo}/releases/tag/nightly"
     else:
         if Version(current_version.replace("v","")) < Version(latest.replace("v","")):
             return f"https://github.com/{owner}/{repo}/releases/tag/{latest}"
