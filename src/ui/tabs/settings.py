@@ -115,7 +115,7 @@ class SettingsTab():
         button_websrv.grid(row=row, column=column, padx=10, pady=(20,10))
 
         column += 1 
-        self.label_bs_var = ctk.StringVar(value=f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay") # TODO update dynamically when port adjustment is implemented
+        self.label_bs_var = ctk.StringVar(value=f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay")
         label_bs = ctk.CTkEntry(self.parent, textvariable=self.label_bs_var, state="readonly", width=190)
         label_bs.grid(row=row, column=column, padx=(10,2), pady=(10, 2))
         def _copy_web_clipboard():
