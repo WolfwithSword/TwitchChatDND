@@ -259,7 +259,7 @@ class SettingsTab():
 
     def _update_elevenlabs_usage(self, count:int, limit: int):
         self.e11labs_usage_label.configure(text=f"{limit-count}/{limit} | {abs(((limit-count)*100)//limit)}% Remaining")
-        if limit-count < 500000000:#self.config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
+        if limit-count < self.config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
             ui_request_floating_notif.trigger(["ElevenLabs credit usage warning!", NotifyType.WARNING, {"bg_color": "#202020", "text_color": "#b0b0b0", "duration": 10000}])
             # TODO check that current OS is windows for this
             # TODO if multi-platform, setup a notifier package/module for crossplatform and call event to there
