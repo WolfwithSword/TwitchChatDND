@@ -10,3 +10,4 @@ requests==2.32.3
 elevenlabs==1.50.3
 CTkListbox==1.4
 static-ffmpeg==2.7
+win11toast==0.35

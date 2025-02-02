@@ -16,7 +16,7 @@ from helpers.utils import run_coroutine_sync
 from helpers.constants import SOURCE_11L
 from custom_logger.logger import logger
 
-from chatdnd.events.tts_events import on_elevenlabs_connect, request_elevenlabs_connect, on_elevenlabs_test_speak
+from chatdnd.events.tts_events import on_elevenlabs_connect, request_elevenlabs_connect, on_elevenlabs_test_speak, on_elevenlabs_subscription_update
 
 from data.voices import _upsert_voice, fetch_voices, get_all_voice_ids, delete_voice
 from data.member import remove_tts
@@ -71,8 +71,11 @@ class ElevenLabsTTS(TTS):
             try:
                 test_client = ElevenLabs(api_key=key)
                 # This will cause an exception if invalid api key
-                user = test_client.user.get() # TODO : display in settings the amount left in credits in user get or get subscription? Or swap ppl to local when low, or just popup warn?
-
+                user_subscription = test_client.user.get_subscription()
+                count = user_subscription.character_count
+                limit = user_subscription.character_limit
+                on_elevenlabs_subscription_update.trigger([count, limit])
+                
                 self.client = AsyncElevenLabs(api_key=key)
                 if self.full_instance:
                     # Remove all voices from system if they are not available on the account anymore
@@ -87,6 +90,7 @@ class ElevenLabsTTS(TTS):
                         result0 = run_coroutine_sync(remove_tts(voice_id=unavailable_voices))
                         result1 = run_coroutine_sync(delete_voice(uid=unavailable_voices, source=SOURCE_11L))
                     on_elevenlabs_connect.trigger([True])
+
             except Exception as e:
                 logger.warn(f"ElevenLabs Exception: {e}")
                 if self.full_instance:
@@ -123,6 +127,12 @@ class ElevenLabsTTS(TTS):
             await asyncio.sleep(duration)
             yield (header + chunk, duration)
             chunk = output.read(chunk_size)
+        
+        
+        user_subscription = await self.client.user.get_subscription()
+        count = user_subscription.character_count
+        limit = user_subscription.character_limit
+        on_elevenlabs_subscription_update.trigger([count, limit])
 
 
     def import_all(self, run_sync_always: bool = False) -> bool:
@@ -236,6 +246,11 @@ class ElevenLabsTTS(TTS):
             audio = list(client.generate(text=text, voice=voice_id, model=MODEL))
             self.cache.set(key=key, expire=self.config.getint(section="CACHE", option="tts_cache_expiry", fallback=7*24*60*60*4*3), value=list(audio))
             audio = iter(audio)
+            
+            user_subscription = client.user.get_subscription()
+            count = user_subscription.character_count
+            limit = user_subscription.character_limit
+            on_elevenlabs_subscription_update.trigger([count, limit])
 
         thread = threading.Thread(target=play, args=(audio,))
         thread.daemon = True

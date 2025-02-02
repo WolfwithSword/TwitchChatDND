@@ -75,6 +75,9 @@ class TCDNDConfig(configparser.ConfigParser):
         if not self.has_option(section="ELEVENLABS", option="api_key"):
             needs_init = True
             self.set(section="ELEVENLABS", option="api_key", value='')
+        if not self.has_option(section="ELEVENLABS", option="usage_warning"):
+            needs_init = True
+            self.set(section="ELEVENLABS", option="usage_warning", value='500')
 
         if needs_init:
             self.write_updates()

@@ -32,7 +32,7 @@ from server.app import ServerApp
 from _version import __version__
 
 from chatdnd import SessionManager
-from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_settings_twitch_channel_update_event
+from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_settings_twitch_channel_update_event, ui_on_startup_complete
 
 from custom_logger.logger import logger
 from db import initialize_database
@@ -162,6 +162,12 @@ async def run_queued_tasks():
         except Exception as e:
             logger.error(f"Error in queued task: {callback} ({args}) - {e}")
 
+
+async def startup_completion():
+    await asyncio.sleep(6)
+    ui_on_startup_complete.trigger()
+
+
 async def run_all():
     
     tasks = [
@@ -169,7 +175,8 @@ async def run_all():
         asyncio.create_task(run_twitch(), name="Twitch"),
         asyncio.create_task(run_ui(), name="UI"),
         asyncio.create_task(run_twitch_bot(), name="Twitch-Bot"),
-        asyncio.create_task(run_queued_tasks(), name="Task-Queue")
+        asyncio.create_task(run_queued_tasks(), name="Task-Queue"),
+        asyncio.create_task(startup_completion(), name="Finish-Startup")
     ]
 
     try: 
