@@ -94,7 +94,7 @@ class ChatController(Chat):
             self.command_list['say'] = self.config.get(section="BOT", option="speak_command")
             self.chat.register_command(self.command_list['say'], 
                 self._say, command_middleware=[UserRestriction(allowed_users=[x.name for x in self.session_mgr.session.party]),
-                                          ChannelCommandCooldown(10), # TODO Config cooldown times
+                                          ChannelCommandCooldown(2), # TODO Config cooldown times
                                           ChannelUserCommandCooldown(15) ])
         if self.chat.unregister_command(self.command_list['voices']):
             self.command_list['voices'] = self.config.get(section="BOT", option="voices_command")

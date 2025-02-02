@@ -206,27 +206,42 @@ class SettingsTab():
     def _validate_el_warning_numeric(self, *data):
         val = self.el_warning_var.get()
 
-        if val is None or val.strip() == "":
-            return
-        elif val.isdigit():
-            return
-        val = re.sub(r"[^0-9]", "", val)
-        self.el_warning_var.set(val)
+        val = self._validate_is_number(val, _min=1)
+        if val != self.el_warning_var.get():
+            val = re.sub(r"[^0-9]", "", val)
+            self.el_warning_var.set(val)
+
 
     def _validate_port(self, *data):
         val = self.port_var.get()
 
-        if val is None or val.strip() == "":
-            self.port_var.set("5000")
-        elif val.isdigit() and (1000 <= int(val) <= 65535):
-            return
-        val = re.sub(r"[^0-9]", "", val)
-        if not (1000 <= int(val) <= 65535):
-            if int(val) >= 65535:
-                val = 65535
-            elif int(val) <= 1000:
-                val = 1000
-        self.port_var.set(str(val))
+        val = self._validate_is_number(val, "5000", _min=1000, _max=65535)
+        if val != self.port_var.get():
+            self.port_var.set(val)
+
+    
+    def _validate_is_number(self, value: str, val_if_empty: str = "", _min=0, _max=999999999):
+        if not val_if_empty:
+            val_if_empty = value
+        if value is None or value.strip() == "":
+            return val_if_empty
+        elif value.isdigit():
+            if not (_min <= int(value) <= _max):
+                if int(value) >= _max:
+                    value = _max
+                elif int(value) <= _min:
+                    value = _min
+                value = str(value)
+            return value
+        value = re.sub(r"[^0-9]", "", value)
+        if not (_min <= int(value) <= _max):
+            if int(value) >= _max:
+                value = _max
+            elif int(value) <= _min:
+                value = _min
+            value = str(value)
+        return value
+
 
     def finish_startup(self):
         self.startup = False
