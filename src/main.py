@@ -18,6 +18,12 @@ import static_ffmpeg
 
 from queue import Queue
 _tasks = Queue()
+
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+    src_path = os.path.join(base_path, 'src')
+    sys.path.insert(0, src_path)
+
 import helpers.event as _event_module
 setattr(sys.modules[_event_module.__name__], '_task_queue', _tasks)
 
