@@ -34,7 +34,11 @@ class DesktopApp(ctk.CTk):
         self.twitch_utils = twitch_utils
         self.session_mgr = session_mgr
         self.chat_ctrl = chat_ctrl
-        self.title(f'Twitch Chat DND Manager - v.{app_version}')
+        if app_version and app_version.startswith("v"):
+            version_for_title = app_version[1:]
+        else:
+            version_for_title = app_version
+        self.title(f'Twitch Chat DND Manager - v.{version_for_title}')
 
         icon_path = get_resource_path('../../images/logo.ico', from_resources = True)
         self.iconbitmap(icon_path)

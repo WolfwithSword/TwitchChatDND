@@ -32,14 +32,14 @@ from twitch.chat import ChatController
 from twitchAPI.type import TwitchAuthorizationException
 
 from helpers import TCDNDConfig as Config
-from helpers.utils import get_resource_path
+from helpers.utils import get_resource_path, check_for_updates
 from ui.app import DesktopApp
 from server.app import ServerApp
 
 from _version import __version__
 
 from chatdnd import SessionManager
-from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_settings_twitch_channel_update_event, ui_on_startup_complete
+from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_settings_twitch_channel_update_event, ui_on_startup_complete, ui_fetch_update_check_event
 
 from custom_logger.logger import logger
 from db import initialize_database
@@ -192,6 +192,7 @@ async def run_queued_tasks():
 async def startup_completion():
     await asyncio.sleep(6)
     ui_on_startup_complete.trigger()
+    ui_fetch_update_check_event.trigger([check_for_updates()])
 
 
 async def run_all():

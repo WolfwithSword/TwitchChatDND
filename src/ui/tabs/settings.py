@@ -3,7 +3,7 @@ from CTkListbox import *
 from custom_logger.logger import logger
 
 from helpers import TCDNDConfig as Config
-from helpers.utils import run_coroutine_sync
+from helpers.utils import run_coroutine_sync, check_for_updates
 from helpers.constants import SOURCE_11L
 from twitch.utils import TwitchUtils
 from tts import ElevenLabsTTS
@@ -16,6 +16,7 @@ from chatdnd.events.tts_events import request_elevenlabs_connect, on_elevenlabs_
 
 from ui.widgets.CTkFloatingNotifications import NotifyType
 from win11toast import notify
+import webbrowser
 import re
 
 class SettingsTab():
@@ -31,6 +32,19 @@ class SettingsTab():
         header_font = ctk.CTkFont(family="Helvetica", size=20, weight="bold")
 
         row=0
+        ######### ChatDND #########
+        column=0
+        cdnd_label = ctk.CTkLabel(self.parent, text="ChatDND", font=header_font)
+        cdnd_label.grid(row=row, column=column, padx=10, pady=(30,2), sticky="ew")
+        column += 1
+        self.utd_label = ctk.CTkLabel(self.parent, text="Up To Date")
+        self.utd_label.grid(row=row, column=column, padx=10, pady=(30,2))
+        column += 1
+        check_update_button = ctk.CTkButton(self.parent, height=30, text="Check for Updates", command=self._check_for_updates)
+        check_update_button.grid(row=row, column=column, padx=10, pady=(30,2))
+        ###########################
+
+        row+=1
         ######### Twitch ##########
         column=0
         label = ctk.CTkLabel(self.parent, text="Twitch Bot", font=header_font)
@@ -201,6 +215,7 @@ class SettingsTab():
         on_elevenlabs_subscription_update.addListener(self._update_elevenlabs_usage)
         request_elevenlabs_connect.trigger()
         ui_on_startup_complete.addListener(self.finish_startup)
+        ui_fetch_update_check_event.addListener(self._update_check_result)
 
     
     def _validate_el_warning_numeric(self, *data):
@@ -394,6 +409,19 @@ class SettingsTab():
         else:
             self.t_con_label.configure(text="Twitch Disconnected", text_color="red")
             self.parent.focus()
+
+    
+    def _check_for_updates(self):
+        ui_fetch_update_check_event.trigger([check_for_updates(), True])
+
+    
+    def _update_check_result(self, value, open_page: bool = False):
+        if value:
+            new_version = value.split("/").pop()
+            ui_request_floating_notif.trigger([f"Update available [{new_version}]!", NotifyType.SUCCESS, {"duration": 10000}])
+            self.utd_label.configure(text=f"Update Available [{new_version}]", text_color="orange")
+            if open_page:
+                webbrowser.open(value, new=2)
 
 
 class AddVoiceCard(ctk.CTkToplevel):
