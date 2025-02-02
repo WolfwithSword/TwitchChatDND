@@ -16,6 +16,7 @@ from chatdnd.events.tts_events import request_elevenlabs_connect, on_elevenlabs_
 
 from ui.widgets.CTkFloatingNotifications import NotifyType
 from win11toast import notify
+import re
 
 class SettingsTab():
     # TODO Someone, please, clean this POS up. I'm begging. Nvm it's actually sorta clean, not really, but good enough
@@ -110,8 +111,12 @@ class SettingsTab():
         label_web = ctk.CTkLabel(self.parent, text="Browser Source", anchor="w", font=header_font)
         label_web.grid(row=row, column=column, padx=10, pady=(30,10))
         row+=1
-        label_bs_var = ctk.StringVar(value=f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay") # TODO update dynamically when port adjustment is implemented
-        label_bs = ctk.CTkEntry(self.parent, textvariable=label_bs_var, state="readonly", width=190)
+        button_websrv = ctk.CTkButton(self.parent,height=30, text="Save", command=self._update_websrv_settings)
+        button_websrv.grid(row=row, column=column, padx=10, pady=(20,10))
+
+        column += 1 
+        self.label_bs_var = ctk.StringVar(value=f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay")
+        label_bs = ctk.CTkEntry(self.parent, textvariable=self.label_bs_var, state="readonly", width=190)
         label_bs.grid(row=row, column=column, padx=(10,2), pady=(10, 2))
         def _copy_web_clipboard():
             self.parent.clipboard_clear()
@@ -119,8 +124,17 @@ class SettingsTab():
         button_web = ctk.CTkButton(self.parent, width=30, height=30, text="Copy", command=_copy_web_clipboard)
         column += 1
         button_web.grid(row=row, column=column, padx=(2, 10), pady=(10,2), sticky='w')
-        # TODO: Port configuration. Can we easily restart the quart server while live, or require application restart?
 
+        column += 1
+        port_label = ctk.CTkLabel(self.parent, text="Port")
+        port_label.grid(row=row, column=column, padx=(10,10), pady=(10,2))
+
+        row += 1
+        self.port_var = ctk.StringVar(value=self.config.get(section="SERVER", option="port", fallback='5000'))
+        self.port_var.trace_add("write", self._validate_port)
+        port_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white", placeholder_text="5000", text_color="black", textvariable=self.port_var)
+        port_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
+        port_entry.configure(justify="center")
 
         ######### 11L TTS ##########
         row+=1
@@ -171,12 +185,49 @@ class SettingsTab():
         self.preview_v_button = ctk.CTkButton(self.parent,height=30, text="Preview Voice", command=self._preview_e11_voice)
         self.preview_v_button.grid(row=row, column=column, padx=10, pady=(168,10), sticky='n')
 
+        column=1
+
+        el_warn_val_label = ctk.CTkLabel(self.parent, text="Warning Limit")
+        el_warn_val_label.grid(row=row, column=column, padx=(10,10), pady=(62,2), sticky='n')
+
+        self.el_warning_var = ctk.StringVar(value=self.config.get(section="ELEVENLABS", option="usage_warning", fallback="500"))
+        self.el_warning_var.trace_add("write", self._validate_el_warning_numeric)
+        el_warning_entry = ctk.CTkEntry(self.parent, width=180, height=30, border_width=1, fg_color="white", placeholder_text="500", text_color="black", textvariable=self.el_warning_var)
+        el_warning_entry.configure(justify="center")
+        el_warning_entry.grid(row=row, column=column, padx=(20,20), pady=(42, 20))
+
+
         on_elevenlabs_connect.addListener(self._update_elevenlabs_connection)
         on_elevenlabs_subscription_update.addListener(self._update_elevenlabs_usage)
         request_elevenlabs_connect.trigger()
         ui_on_startup_complete.addListener(self.finish_startup)
 
     
+    def _validate_el_warning_numeric(self, *data):
+        val = self.el_warning_var.get()
+
+        if val is None or val.strip() == "":
+            return
+        elif val.isdigit():
+            return
+        val = re.sub(r"[^0-9]", "", val)
+        self.el_warning_var.set(val)
+
+    def _validate_port(self, *data):
+        val = self.port_var.get()
+
+        if val is None or val.strip() == "":
+            self.port_var.set("5000")
+        elif val.isdigit() and (1000 <= int(val) <= 65535):
+            return
+        val = re.sub(r"[^0-9]", "", val)
+        if not (1000 <= int(val) <= 65535):
+            if int(val) >= 65535:
+                val = 65535
+            elif int(val) <= 1000:
+                val = 1000
+        self.port_var.set(str(val))
+
     def finish_startup(self):
         self.startup = False
 
@@ -239,8 +290,17 @@ class SettingsTab():
             self._update_voice_list()
 
 
+    def _update_websrv_settings(self):
+        self.config.set(section="SERVER", option="port", value=str(self.port_var.get()))
+        self.config.write_updates()
+        ui_request_floating_notif.trigger(["Please restart the application to apply port changes!", NotifyType.WARNING, {"duration": 20000}])
+        self.label_bs_var.set(f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay")
+        # TODO Look into if we can restart task for webserver
+
+
     def _update_el_settings(self):
         self.config.set(section="ELEVENLABS", option="api_key", value=str(self.el_api_key_var.get()))
+        self.config.set(section="ELEVENLABS", option="usage_warning", value=str(self.el_warning_var.get()))
         self.config.write_updates()
         request_elevenlabs_connect.trigger()
 
