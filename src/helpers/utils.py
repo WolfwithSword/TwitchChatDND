@@ -3,6 +3,9 @@ import asyncio
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Coroutine, TypeVar
+import requests
+from packaging.version import Version
+from _version import __version__ as current_version
 
 T = TypeVar("T")
 
@@ -45,3 +48,27 @@ def run_coroutine_sync(coroutine: Coroutine[Any, Any, T], timeout: float = 30) -
                 return future.result(timeout=timeout)
     else:
         return asyncio.run_coroutine_threadsafe(coroutine, loop).result()
+
+
+def check_for_updates():
+    owner = "WolfwithSword" # TODO consider moving to a metadata file?
+    repo = "TwitchChatDND"
+    url = f"https://api.github.com/repos/{owner}/{repo}/releases"
+    response = requests.get(url)
+    if response.status_code != 200:
+        return None
+
+    data = response.json()
+    if not data:
+        return None
+    latest_release = sorted(data, key = lambda d: d['published_at'], reverse=True)[0]
+    latest = latest_release['tag_name']
+
+    if current_version == 'dev':
+        return f"https://github.com/{owner}/{repo}/releases/tag/{latest}"
+    elif 'nightly' in version:
+        return f"https://github.com/{owner}/{repo}/releases/tag/{nightly}"
+    else:
+        if Version(current_version.replace("v","")) < Version(latest.replace("v","")):
+            return f"https://github.com/{owner}/{repo}/releases/tag/{latest}"
+    return None
