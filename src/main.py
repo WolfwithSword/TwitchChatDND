@@ -32,6 +32,7 @@ from twitch.chat import ChatController
 from twitchAPI.type import TwitchAuthorizationException
 
 from helpers import TCDNDConfig as Config
+from helpers.utils import get_resource_path
 from ui.app import DesktopApp
 from server.app import ServerApp
 
@@ -53,11 +54,11 @@ from alembic import command as alembic_command
 
 def run_migrations():
     logger.info("Running DB Migrations...")
-    alembic_cfg = AlembicConfig("alembic.ini")
+    alembic_cfg = AlembicConfig(get_resource_path("../../alembic.ini", False))
     if getattr(sys, 'frozen', False):
-        script_location =os.path.join(os.path.dirname(__file__), "migrations")
+        script_location = get_resource_path("../../migrations", False)
     else:
-        script_location =os.path.join(os.path.dirname(__file__), "..", "migrations")
+        script_location = os.path.join(os.path.dirname(__file__), "..", "migrations")
     alembic_cfg.set_main_option("script_location", script_location)
 
     alembic_command.upgrade(alembic_cfg, "head")
