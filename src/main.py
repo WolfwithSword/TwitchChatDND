@@ -54,11 +54,14 @@ from alembic import command as alembic_command
 
 def run_migrations():
     logger.info("Running DB Migrations...")
-    alembic_cfg = AlembicConfig(get_resource_path("../../alembic.ini", False))
     if getattr(sys, 'frozen', False):
-        script_location = get_resource_path("../../migrations", False)
+        alembic_cfg = AlembicConfig(os.path.join(cwd, 'alembic.ini'))
+        script_location = os.path.join(cwd, 'migrations')
     else:
+        alembic_cfg = AlembicConfig(os.path.join(cwd, 'alembic.ini'))
         script_location = os.path.join(os.path.dirname(__file__), "..", "migrations")
+    logger.info(f"DB Migrations config: {alembic_cfg.config_file_name}")
+    logger.info(f"DB Migrations folder: {script_location}")
     alembic_cfg.set_main_option("script_location", script_location)
 
     alembic_command.upgrade(alembic_cfg, "head")
