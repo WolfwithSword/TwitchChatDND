@@ -76,11 +76,11 @@ class SettingsTab():
 
         row+=1
         column=1
-        self.channel_var = ctk.StringVar(value=self.config.get(section="TWITCH", option="channel", fallback=""))
-        twitch_channel = ctk.CTkEntry(self.parent, width=180, height=30, border_width=1, fg_color="white", placeholder_text="Channel", text_color="black", textvariable=self.channel_var)
-        twitch_channel.configure(justify="center")
+        self.twitch_channel = ctk.CTkLabel(self.parent, width=180, height=30, text="None" if not self.twitch_utils.channel else self.twitch_utils.channel.display_name,
+                                            font=ctk.CTkFont(weight="bold"))
+        self.twitch_channel.configure(justify="center")
 
-        twitch_channel.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
+        self.twitch_channel.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
         column+=1  
         self.prefix_var = ctk.StringVar(value=self.config.get(section="BOT", option="prefix", fallback='!').strip()[0])
         prefix_options = ctk.CTkSegmentedButton(self.parent, values=['!', '~', '+', '&'], variable=self.prefix_var)
@@ -341,7 +341,6 @@ class SettingsTab():
         self.config.set(section="BOT", option="join_command", value=self.join_cmd_var.get().strip())
         self.config.set(section="BOT", option="voice_command", value=self.voice_cmd_var.get().strip())
         self.config.set(section="BOT", option="voices_command", value=self.listvoice_cmd_var.get().strip())
-        self.config.set(section="TWITCH", option="channel", value=self.channel_var.get())
         self.config.write_updates()
         ui_settings_twitch_channel_update_event.trigger([True, self.twitch_utils, 5])
     
@@ -396,8 +395,10 @@ class SettingsTab():
             self.chat_con_label.configure(text="Chat Connected", text_color="green")
             if not self.startup:
                 ui_request_floating_notif.trigger(["Twitch Chatbot connected!", NotifyType.INFO])
+            self.twitch_channel.configure(text="None" if not self.twitch_utils.channel else self.twitch_utils.channel.display_name)
         else:
             self.chat_con_label.configure(text="Chat Disconnected", text_color="red")
+            self.twitch_channel.configure(text="None")
             if not self.startup:
                 ui_request_floating_notif.trigger(["Twitch Chatbot disconnected!", NotifyType.WARNING])
             self.parent.focus()
