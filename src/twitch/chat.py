@@ -25,11 +25,10 @@ from tts import ElevenLabsTTS, LocalTTS
 
 class ChatController(Chat):
     def __init__(self, session_mgr: SessionManager, config: Config):
-        self.twitch_utils:TwitchUtils = None
+        self.twitch_utils: TwitchUtils = None
         self.twitch: Twitch = None
         self.config: Config = config
         self.chat: Chat = None
-        self.channel: TwitchUser = None
 
         self.session_mgr = session_mgr
         self.command_list = {}
@@ -39,7 +38,6 @@ class ChatController(Chat):
 
 
     async def start(self, status: bool=None, twitch_utils: TwitchUtils=None, wait_tries:int = 5):
-        self.channel = None
         if not twitch_utils:
             raise Exception("Twitch instance is not instantiated")
 
@@ -54,14 +52,13 @@ class ChatController(Chat):
         if not self.twitch:
             raise Exception("Twitch instance is not instantiated")
 
-        self.channel = await self.twitch_utils.get_user_by_name(username=self.config.get(section="TWITCH", option="channel", fallback=''))
-        if not self.channel:
-            logger.error(f"Channel {self.config.get(section="TWITCH", option="channel", fallback=None)} not found")
+        if not self.twitch_utils.channel:
+            logger.error(f"Chat channel not found")
             chat_on_channel_fetch.trigger([False])
             raise Exception("Channel not found")
         chat_on_channel_fetch.trigger([True])
         chat_bot_on_connect.trigger([False])
-        self.chat = await Chat(self.twitch)#, initial_channel=self.channel.username)
+        self.chat = await Chat(self.twitch)
         self.chat.register_event(ChatEvent.READY, self._on_ready)
 
         self.chat.set_prefix(self.config.get(section="BOT", option="prefix", fallback="!"))
@@ -117,12 +114,12 @@ class ChatController(Chat):
         # Cannot put async or sync event triggers in this, as they are in different threads
         logger.info("Bot is ready")
         self.send_message(text="Chat DnD is now active! ⚔️🐉")
-        await ready_event.chat.join_room(self.channel.display_name)
+        await ready_event.chat.join_room(self.twitch_utils.channel.display_name) # or .login?
 
     
     def send_message(self, text: str):
         logger.debug(f"Sending chat msg: {text}")
-        asyncio.run_coroutine_threadsafe(self.chat.send_message(text=text, room=self.channel.display_name),
+        asyncio.run_coroutine_threadsafe(self.chat.send_message(text=text, room=self.twitch_utils.channel.display_name),
                                          asyncio.get_event_loop())
 
 

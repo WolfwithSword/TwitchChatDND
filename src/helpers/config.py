@@ -54,13 +54,6 @@ class TCDNDConfig(configparser.ConfigParser):
         if not self.has_option(section="CACHE", option="tts_cache_expiry"):
             needs_init = True
             self.set(section="CACHE", option="tts_cache_expiry", value=str(7*24*60*60*4*3))
-        
-        if not self.has_section("TWITCH"):
-            needs_init = True
-            self.add_section("TWITCH")
-        if not self.has_option(section="TWITCH", option="channel"):
-            needs_init = True
-            self.set(section="TWITCH", option="channel", value="")
 
         if not self.has_section("DND"):
             needs_init = True

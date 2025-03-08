@@ -126,19 +126,17 @@ async def run_twitch_bot():
         await asyncio.sleep(5)
     
     async def try_channel():
-        while not config.get(section="TWITCH", option="channel", fallback=None):
+        while not twitch_utils.channel:
             await asyncio.sleep(5)
         try:   
-            if chat.channel:
+            if twitch_utils.channel and chat.chat.is_connected:
                 return True
             await asyncio.sleep(4)
-            if chat.channel:
+            if twitch_utils.channel and chat.chat.is_connected:
                 return True
             return False
         except Exception as e:
             if "Channel not found" in str(e):
-                config.set(section="TWITCH", option="channel", value='')
-                config.write_updates()
                 return False
             raise
     

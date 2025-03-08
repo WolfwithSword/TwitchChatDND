@@ -25,6 +25,7 @@ class TwitchUtils:
     def __init__(self, config: Config, cache_dir: str = ""):
         self.twitch: Twitch = None
         self.config: Config = config
+        self.channel: TwitchUser = None
 
         if config.getboolean(section="CACHE", option="enabled"):
             # Caching in general, but for here, it's specific to API results
@@ -60,6 +61,10 @@ class TwitchUtils:
             raise
         logger.info("Twitch connected")
         twitchutils_twitch_on_connect_event.trigger([True, self])
+
+        async for user_info in self.twitch.get_users():
+            self.channel = user_info
+            break
 
 
     async def get_user_by_name(self, username: str):
