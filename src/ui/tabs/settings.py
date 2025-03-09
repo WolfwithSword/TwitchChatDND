@@ -1,6 +1,10 @@
+import webbrowser
+import re
+
+from win11toast import notify
+
 import customtkinter as ctk
 from CTkListbox import *
-from custom_logger.logger import logger
 
 from helpers import TCDNDConfig as Config
 from helpers.utils import run_coroutine_sync, check_for_updates
@@ -15,9 +19,7 @@ from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_even
 from chatdnd.events.tts_events import request_elevenlabs_connect, on_elevenlabs_connect, on_elevenlabs_test_speak, on_elevenlabs_subscription_update
 
 from ui.widgets.CTkFloatingNotifications import NotifyType
-from win11toast import notify
-import webbrowser
-import re
+
 
 class SettingsTab():
     # TODO Someone, please, clean this POS up. I'm begging. Nvm it's actually sorta clean, not really, but good enough
@@ -28,8 +30,9 @@ class SettingsTab():
         self.twitch_utils = twitch_utils
 
         self.startup = True
-        
+
         header_font = ctk.CTkFont(family="Helvetica", size=20, weight="bold")
+        bold_font = ctk.CTkFont(weight="bold")
 
         row=0
         ######### ChatDND #########
@@ -76,23 +79,26 @@ class SettingsTab():
 
         row+=1
         column=1
-        self.twitch_channel = ctk.CTkLabel(self.parent, width=180, height=30, text="None" if not self.twitch_utils.channel else self.twitch_utils.channel.display_name,
-                                            font=ctk.CTkFont(weight="bold"))
+        self.twitch_channel = ctk.CTkLabel(self.parent, width=180, height=30,
+                                           text="None" if not self.twitch_utils.channel else self.twitch_utils.channel.display_name,
+                                           font=bold_font)
         self.twitch_channel.configure(justify="center")
 
         self.twitch_channel.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
-        column+=1  
+        column+=1
         self.prefix_var = ctk.StringVar(value=self.config.get(section="BOT", option="prefix", fallback='!').strip()[0])
         prefix_options = ctk.CTkSegmentedButton(self.parent, values=['!', '~', '+', '&'], variable=self.prefix_var)
         prefix_options.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
         column += 1
         self.join_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="join_command", fallback=''))
-        join_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white", placeholder_text="join", text_color="black", textvariable=self.join_cmd_var)
+        join_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white",
+                                      placeholder_text="join", text_color="black", textvariable=self.join_cmd_var)
         join_cmd_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
         join_cmd_entry.configure(justify="center")
         column += 1
         self.speak_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="speak_command", fallback=''))
-        speak_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white", placeholder_text="say", text_color="black", textvariable=self.speak_cmd_var)
+        speak_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white",
+                                       placeholder_text="say", text_color="black", textvariable=self.speak_cmd_var)
         speak_cmd_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
         speak_cmd_entry.configure(justify="center")
 
@@ -108,12 +114,14 @@ class SettingsTab():
         row += 1
         column -= 1
         self.voice_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="voice_command", fallback=''))
-        voice_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white", placeholder_text="join", text_color="black", textvariable=self.voice_cmd_var)
+        voice_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white",
+                                       placeholder_text="join", text_color="black", textvariable=self.voice_cmd_var)
         voice_cmd_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
         voice_cmd_entry.configure(justify="center")
         column += 1
         self.listvoice_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="voices_command", fallback=''))
-        voices_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white", placeholder_text="say", text_color="black", textvariable=self.listvoice_cmd_var)
+        voices_cmd_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white",
+                                        placeholder_text="say", text_color="black", textvariable=self.listvoice_cmd_var)
         voices_cmd_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
         voices_cmd_entry.configure(justify="center")
 
@@ -128,7 +136,7 @@ class SettingsTab():
         button_websrv = ctk.CTkButton(self.parent,height=30, text="Save", command=self._update_websrv_settings)
         button_websrv.grid(row=row, column=column, padx=10, pady=(20,10))
 
-        column += 1 
+        column += 1
         self.label_bs_var = ctk.StringVar(value=f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay")
         label_bs = ctk.CTkEntry(self.parent, textvariable=self.label_bs_var, state="readonly", width=190)
         label_bs.grid(row=row, column=column, padx=(10,2), pady=(10, 2))
@@ -146,7 +154,8 @@ class SettingsTab():
         row += 1
         self.port_var = ctk.StringVar(value=self.config.get(section="SERVER", option="port", fallback='5000'))
         self.port_var.trace_add("write", self._validate_port)
-        port_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white", placeholder_text="5000", text_color="black", textvariable=self.port_var)
+        port_entry = ctk.CTkEntry(self.parent,  width=100, height=30, border_width=1, fg_color="white",
+                                  placeholder_text="5000", text_color="black", textvariable=self.port_var)
         port_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20))
         port_entry.configure(justify="center")
 
@@ -178,7 +187,8 @@ class SettingsTab():
         column=1
         row+=1
         self.el_api_key_var = ctk.StringVar(value=self.config.get(section="ELEVENLABS", option="api_key", fallback=""))
-        el_api_key_entry = ctk.CTkEntry(self.parent, width=180, height=30, border_width=1, fg_color="white", placeholder_text="API Key", text_color="black", textvariable=self.el_api_key_var)
+        el_api_key_entry = ctk.CTkEntry(self.parent, width=180, height=30, border_width=1, fg_color="white",
+                                        placeholder_text="API Key", text_color="black", textvariable=self.el_api_key_var)
         el_api_key_entry.configure(justify="center", show="*")
         el_api_key_entry.grid(row=row, column=column, padx=(20,20), pady=(2, 20), sticky='n')
 
@@ -194,7 +204,8 @@ class SettingsTab():
 
         self.add_v_button = ctk.CTkButton(self.parent,height=30, text="Add Voice", command=self.open_edit_popup)
         self.add_v_button.grid(row=row, column=column, padx=10, pady=(52,10), sticky='n')
-        self.del_v_button = ctk.CTkButton(self.parent,height=30, text="Remove Voice", fg_color="#b1363d", hover_color="#772429", command=self._delete_voice)
+        self.del_v_button = ctk.CTkButton(self.parent,height=30, text="Remove Voice",
+                                          fg_color="#b1363d", hover_color="#772429", command=self._delete_voice)
         self.del_v_button.grid(row=row, column=column, padx=10, pady=(92,10), sticky='n')
         self.preview_v_button = ctk.CTkButton(self.parent,height=30, text="Preview Voice", command=self._preview_e11_voice)
         self.preview_v_button.grid(row=row, column=column, padx=10, pady=(168,10), sticky='n')
@@ -206,7 +217,8 @@ class SettingsTab():
 
         self.el_warning_var = ctk.StringVar(value=self.config.get(section="ELEVENLABS", option="usage_warning", fallback="500"))
         self.el_warning_var.trace_add("write", self._validate_el_warning_numeric)
-        el_warning_entry = ctk.CTkEntry(self.parent, width=180, height=30, border_width=1, fg_color="white", placeholder_text="500", text_color="black", textvariable=self.el_warning_var)
+        el_warning_entry = ctk.CTkEntry(self.parent, width=180, height=30, border_width=1, fg_color="white",
+                                        placeholder_text="500", text_color="black", textvariable=self.el_warning_var)
         el_warning_entry.configure(justify="center")
         el_warning_entry.grid(row=row, column=column, padx=(20,20), pady=(42, 20))
 
@@ -217,7 +229,7 @@ class SettingsTab():
         ui_on_startup_complete.addListener(self.finish_startup)
         ui_fetch_update_check_event.addListener(self._update_check_result)
 
-    
+
     def _validate_el_warning_numeric(self, *data):
         val = self.el_warning_var.get()
 
@@ -233,14 +245,14 @@ class SettingsTab():
         if val != self.port_var.get():
             self.port_var.set(val)
 
-    
+
     def _validate_is_number(self, value: str, val_if_empty: str = "", _min=0, _max=999999999):
         if not val_if_empty:
             val_if_empty = value
         if value is None or value.strip() == "":
             return val_if_empty
         elif value.isdigit():
-            if not (_min <= int(value) <= _max):
+            if not _min <= int(value) <= _max:
                 if int(value) >= _max:
                     value = _max
                 elif int(value) <= _min:
@@ -248,7 +260,7 @@ class SettingsTab():
                 value = str(value)
             return value
         value = re.sub(r"[^0-9]", "", value)
-        if not (_min <= int(value) <= _max):
+        if not _min <= int(value) <= _max:
             if int(value) >= _max:
                 value = _max
             elif int(value) <= _min:
@@ -263,14 +275,14 @@ class SettingsTab():
 
     def open_edit_popup(self, event=None):
         AddVoiceCard(self.config, self._update_voice_list)
-    
+
 
     def _on_voice_option_select(self, option):
         if option:
             self.preview_v_button.configure(state="normal")
             if self.e11_voices.size() > 1:
                 self.del_v_button.configure(state="normal")
-            else: 
+            else:
                 self.del_v_button.configure(state="disabled")
         else:
             self.del_v_button.configure(state="disabled")
@@ -311,9 +323,9 @@ class SettingsTab():
             return
         option = self.e11_voices.get()
         client = ElevenLabsTTS(self.config)
-        result = None
+        result1 = None
         if uid := client.get_voices()[option]:
-            result0 = run_coroutine_sync(remove_tts(voice_id=uid))
+            run_coroutine_sync(remove_tts(voice_id=uid))
             result1 = run_coroutine_sync(delete_voice(uid=uid, source=SOURCE_11L))
         if result1:
             self._update_voice_list()
@@ -343,21 +355,22 @@ class SettingsTab():
         self.config.set(section="BOT", option="voices_command", value=self.listvoice_cmd_var.get().strip())
         self.config.write_updates()
         ui_settings_twitch_channel_update_event.trigger([True, self.twitch_utils, 5])
-    
+
 
     def _update_elevenlabs_usage(self, count:int, limit: int):
         self.e11labs_usage_label.configure(text=f"{limit-count}/{limit} | {abs(((limit-count)*100)//limit)}% Remaining")
         if limit-count < self.config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
-            ui_request_floating_notif.trigger(["ElevenLabs credit usage warning!", NotifyType.WARNING, {"bg_color": "#202020", "text_color": "#b0b0b0", "duration": 10000}])
+            ui_request_floating_notif.trigger(["ElevenLabs credit usage warning!", NotifyType.WARNING,
+                                               {"bg_color": "#202020", "text_color": "#b0b0b0", "duration": 10000}])
             # TODO check that current OS is windows for this
             # TODO if multi-platform, setup a notifier package/module for crossplatform and call event to there
-            notify("ChatDnD", "Your available Elevenlabs character count is low", 
+            notify("ChatDnD", "Your available Elevenlabs character count is low",
                 progress={
                     'title':"Elevenlabs Usage Warning",
                     'status': 'Usage Warning',
                     'value': str((limit-count)/limit),
                     'valueStringOverride': f'{limit-count}/{limit} Characters'
-                }, 
+                },
                 duration='long',
                 buttons=[
                     {"activationType": "protocol", "arguments": "https://elevenlabs.io/app/subscription", "content": "See Plans"},
@@ -382,7 +395,7 @@ class SettingsTab():
                 self.e11_voices.selection_clear()
                 while self.e11_voices.size():
                     self.e11_voices.deactivate('END')
-                    self.e11_voices.delete('END')   
+                    self.e11_voices.delete('END')
             self.del_v_button.configure(state="disabled")
             self.preview_v_button.configure(state="disabled")
             self.parent.focus()
@@ -411,11 +424,11 @@ class SettingsTab():
             self.t_con_label.configure(text="Twitch Disconnected", text_color="red")
             self.parent.focus()
 
-    
+
     def _check_for_updates(self):
         ui_fetch_update_check_event.trigger([check_for_updates(), True])
 
-    
+
     def _update_check_result(self, value, open_page: bool = False):
         if value:
             new_version = value.split("/").pop()
@@ -437,10 +450,10 @@ class AddVoiceCard(ctk.CTkToplevel):
         AddVoiceCard.open_popup = self
         self.config: Config = config
         self.update_list_callback = update_list_callback
-        self.title(f"Add new ElevenLabs Voice")
+        self.title("Add new ElevenLabs Voice")
         self.geometry("400x400")
         self.resizable(False, False)
-        self.protocol("WM_DELETE_WINDOW", self.close_popup) 
+        self.protocol("WM_DELETE_WINDOW", self.close_popup)
 
         self.tts = ElevenLabsTTS(self.config)
         self.attributes("-topmost", True)

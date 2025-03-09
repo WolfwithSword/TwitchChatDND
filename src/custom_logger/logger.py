@@ -1,16 +1,15 @@
 import logging
 import os
 import sys
-import asyncio
 from logging.handlers import RotatingFileHandler, QueueHandler, QueueListener
 from queue import Queue
 
-_format = "%(asctime)s [%(threadName)s] [%(name)s] [%(module)s] [%(levelname)s] - %(message)s"
+LOGGER_FORMAT = "%(asctime)s [%(threadName)s] [%(name)s] [%(module)s] [%(levelname)s] - %(message)s"
 
 class CustomStreamHandler(logging.StreamHandler):
     def __init__(self):
         super().__init__()
-        formatter = logging.Formatter(_format)
+        formatter = logging.Formatter(LOGGER_FORMAT)
         self.setFormatter(formatter)
 
 class CustomFileHandler(RotatingFileHandler):
@@ -21,14 +20,14 @@ class CustomFileHandler(RotatingFileHandler):
             backupCount=5,
             encoding='utf-8'
         )
-        formatter = logging.Formatter(_format)
+        formatter = logging.Formatter(LOGGER_FORMAT)
         self.setFormatter(formatter)
 
 class RedirectSysLogger(object):
-    def __init__(self, logger, level):
-       self.logger = logger
-       self.level = level
-       self.linebuf = ''
+    def __init__(self, _logger, level):
+        self.logger = _logger
+        self.level = level
+        self.linebuf = ''
 
     def write(self, buf):
         for line in buf.rstrip().splitlines():

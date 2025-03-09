@@ -1,21 +1,20 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, Integer, asc, CheckConstraint
 from sqlalchemy.future import select
 
 from data.base import Base
 
-from sqlalchemy.future import select
 from db import async_session
 
-from custom_logger.logger import logger 
+from custom_logger.logger import logger
 from helpers.constants import SOURCES, SOURCE_11L, SOURCE_LOCAL
 
 class Voice(Base):
     __tablename__ = "voices"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String, unique=True, nullable=False) # Unique? May need to request them to rename voice?
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    # Unique? May need to request them to rename voice?
     uid: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     source: Mapped[str] = mapped_column(String, default=SOURCE_LOCAL, nullable=False)
 
@@ -35,7 +34,7 @@ class Voice(Base):
 
     def __eq__(self, other):
         return self.name == other.name and self.uid == other.uid and self.source == other.source
-    
+
 
     def __hash__(self):
         return hash(f"{self.name}{self.uid}{self.source}")
@@ -56,7 +55,9 @@ async def _upsert_voice(name: str, uid: str, source: str) -> Voice | None:
         return None
     async with async_session() as session:
         async with session.begin():
-            query = select(Voice).where(Voice.name == name).where(Voice.uid == uid).where(Voice.source == source)
+            query = select(Voice).where(Voice.name == name).where(
+                                        Voice.uid == uid).where(
+                                        Voice.source == source)
             result = await session.execute(query)
             voice = result.scalars().first()
 
@@ -82,13 +83,13 @@ async def delete_voice(uid: str | list = None, source: str = None) -> bool:
     if not uid:
         return False
     async with async_session() as session:
-        if type(uid) == str:
+        if isinstance(uid, str):
             voice = await fetch_voice(uid=uid, source=source)
             if voice:
                 await session.delete(voice)
                 await session.commit()
                 return True
-        elif type(uid) == list:
+        elif isinstance(uid, list):
             query = select(Voice).where(Voice.uid.in_(uid))
             result = await session.execute(query)
             voices = result.scalars().all()
@@ -130,20 +131,20 @@ async def fetch_voices(source: str = None, limit: int = 100) -> list[Voice]:
         return res
 
 
-async def fetch_paginated_voices(page: int, per_page: int=20, 
+async def fetch_paginated_voices(page: int, per_page: int=20,
                                  name_filter: str = None, filter_source: str = None) -> list[Voice]:
     if not exclude_names:
         exclude_names = []
-    
+
     async with async_session() as session:
         query = select(Voice).order_by(asc(Voice.name))
 
         if name_filter:
             query = query.where(Voice.name.like(f"%{name_filter.lower()}%"))
-        
+
         if filter_source:
-            query = query.where(Voice.source == source)
-        
+            query = query.where(Voice.source == filter_source)
+
         offset = (page -1) * per_page
         query = query.offset(offset).limit(per_page)
 

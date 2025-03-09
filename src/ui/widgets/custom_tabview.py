@@ -6,7 +6,7 @@ from ui.widgets.custom_segmentedbutton import CTkSegmentedButton
 
 
 class CTkTabview(CTkBaseClass):
-    
+
     # Tabview...
     # For detailed information check out the documentation.
 

@@ -41,11 +41,11 @@ class UsersTab():
 
         self.load_members_task = asyncio.create_task(self.load_members())
 
- 
+
     def update_search_filter(self, *args):
         self.name_filter = self.search_var.get()
-        self.page = 1 
-        asyncio.create_task(self.delay_load_members())  
+        self.page = 1
+        asyncio.create_task(self.delay_load_members())
 
     async def delay_load_members(self):
         await asyncio.sleep(0.2)
@@ -61,8 +61,8 @@ class UsersTab():
         async with self.load_members_lock:
             for widget in self.members_list_frame.winfo_children():
                 widget.destroy()
-            
-            try: 
+
+            try:
                 await asyncio.sleep(0.2)
                 members = await fetch_paginated_members(self.page, self.per_page, name_filter=self.name_filter)
 
@@ -80,7 +80,7 @@ class UsersTab():
                 self.update_pagination_buttons()
             except asyncio.CancelledError:
                 pass
-        
+
 
     def update_pagination_buttons(self):
         self.prev_button.configure(state="normal" if self.page > 1 else "disabled")
@@ -89,8 +89,8 @@ class UsersTab():
     def previous_page(self):
         if self.page > 1:
             self.page -= 1
-        self.schedule_load_members()  
+        self.schedule_load_members()
 
     def next_page(self):
         self.page += 1
-        self.schedule_load_members()     
+        self.schedule_load_members()

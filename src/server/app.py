@@ -1,9 +1,11 @@
+
+import os
+import sys
 import asyncio
 from asyncio import Queue
 
 from functools import wraps
-from quart import Quart, redirect, request, jsonify, websocket, render_template, send_from_directory, Response, copy_current_websocket_context
-import os, sys
+from quart import Quart, websocket, send_from_directory, copy_current_websocket_context
 
 from data import Member
 from data.voices import fetch_voice
@@ -69,13 +71,13 @@ class ServerApp():
 
         self._party: set[Member] = set()
 
-        # Setup here temporarily for POC - or just keep tbh f 
+        # Setup here temporarily for POC - or just keep tbh f
         chat_say_command.addListener(self.chat_say)
         on_party_update.addListener(self.send_members)
         on_overlay_open.trigger()
 
     def _setup_routes(self):
-    
+
         @self.app.websocket("/ws/tts")
         @collect_tts_websockets
         async def audio_stream():
@@ -150,11 +152,11 @@ class ServerApp():
         @self.app.route('/overlay')
         async def overlay():
             return await send_from_directory(STATIC_DIR, 'overlay.html')
-    
+
     async def chat_say(self, member: Member, text: str):
         await message_queue.put((member, text))
 
-            
+
     async def run_task(self, host="0.0.0.0", **kwargs):
         # TODO on port change, request app restart
         await self.app.run_task(host=host, port=self.config.getint(section="SERVER", option="port"), **kwargs)
@@ -164,11 +166,11 @@ class ServerApp():
         if not user_data:
             speech_message = {
                 "type": "endspeech"
-            }         
-            await members_queue.put(speech_message)   
+            }
+            await members_queue.put(speech_message)
         message = {"type": "update_users", "users": user_data}
         await members_queue.put(message)
-    
+
     async def animate_member(self, name, anim_type):
         message = {
             "type": "animate",

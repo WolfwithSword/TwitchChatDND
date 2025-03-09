@@ -1,17 +1,16 @@
 import asyncio
 import inspect
-import threading
 
-from custom_logger.logger import logger 
+from custom_logger.logger import logger
 
 # Main sets this at startup. It's cursed, but it works.
-_task_queue = None
+_TASK_QUEUE = None
 
 class Event:
     def __init__(self):
         self.__listeners = []
         self._main_loop = asyncio.get_event_loop()
-    
+
 
     @property
     def on(self):
@@ -19,15 +18,17 @@ class Event:
             self.addListener(func)
             return func
         return wrapper
-    
+
 
     def addListener(self, func):
-        if func in self.__listeners: return
+        if func in self.__listeners:
+            return
         self.__listeners.append(func)
-    
+
 
     def removeListener(self, func):
-        if func not in self.__listeners: return
+        if func not in self.__listeners:
+            return
         self.__listeners.remove(func)
 
 
@@ -42,14 +43,14 @@ class Event:
                     try:
                         loop = asyncio.get_running_loop()
                         loop.create_task(self._run_async_func(func, *args))
-                    except:
+                    except Exception as e:
                         loop = asyncio.new_event_loop()
                         loop.run_until_complete(self._run_async_func(func, *args))
                 else:
                     func(*args)
             except RuntimeError as e:
                 if "main thread is not in main loop" in str(e):
-                    _task_queue.put((func, *args))
+                    _TASK_QUEUE.put((func, *args))
                     continue
                 else:
                     raise
@@ -58,7 +59,7 @@ class Event:
 
 
     async def _run_async_func(self, func, *args):
-        try: 
+        try:
             await func(*args)
         except Exception as e:
             logger.error(f"Async Event Listener error: {e}")

@@ -1,6 +1,6 @@
 import asyncio
 import threading
-import base64, io, struct
+import io
 import pyttsx4
 
 from tts.tts import TTS, create_wav_header
@@ -8,7 +8,6 @@ from tts.tts import TTS, create_wav_header
 from helpers import TCDNDConfig as Config
 from helpers.utils import run_coroutine_sync
 from helpers.constants import SOURCE_LOCAL
-from custom_logger.logger import logger
 
 from data.voices import _upsert_voice, fetch_voices, get_all_voice_ids
 from data import Voice
@@ -17,10 +16,10 @@ from data import Voice
 # TODO: For local TTS, there is a slight minor clipping when transitioning between chunks. Mitigated with a large chunk size, need better solution? may be fixed
 
 
-class LocalTTS(TTS): 
+class LocalTTS(TTS):
     def __init__(self, config: Config, full_instance: bool = True):
         super().__init__(config=None)
-        
+
         self.sample_rate = 22050 # PyTTS default
         self.bits_per_sample = 16
         self.num_channels = 1
@@ -28,7 +27,7 @@ class LocalTTS(TTS):
         self.max_chunk_size = 1024*8*8*2*2 # 256kb
 
         if full_instance:
-            engine = pyttsx4.init() 
+            engine = pyttsx4.init()
             db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=SOURCE_LOCAL))
             for v in engine.getProperty('voices'):
                 if v.id not in db_voice_ids:
@@ -44,7 +43,7 @@ class LocalTTS(TTS):
 
     def list_voices(self) -> list:
         friendly_names = list()
-        engine = pyttsx4.init() 
+        engine = pyttsx4.init()
         for v in engine.getProperty('voices'):
             n = v.name.split('-')[0].replace("Desktop", "").replace("Microsoft", "").strip()
             friendly_names.append(n)
@@ -53,7 +52,7 @@ class LocalTTS(TTS):
     def get_voice_id_by_friendly_name(self, name: str) -> str:
         if not name:
             return None
-        engine = pyttsx4.init() 
+        engine = pyttsx4.init()
         for v in engine.getProperty('voices'):
             n = v.name.split('-')[0].replace("Desktop", "").replace("Microsoft", "").strip()
             if n.lower() == name.lower().strip():

@@ -1,8 +1,6 @@
 import random
 
 from data import Session, Member, SessionState
-from custom_logger.logger import logger 
-
 from chatdnd.events.session_events import on_party_update
 from chatdnd.events.web_events import on_overlay_open
 
@@ -17,14 +15,14 @@ class SessionManager():
 
     def start_session(self, party_size: int = 4) -> bool:
         if len(self.session.queue) < party_size:
-            return False 
+            return False
         self.session.state = SessionState.STARTED
         self.session.party.clear()
         self.session.party.update(random.sample(sorted(self.session.queue), party_size))
         self.session.queue.clear()
         on_party_update.trigger([self.session.get_party()])
         return True
-    
+
     def end(self):
         self.session.clear()
         self.session.state = SessionState.NONE

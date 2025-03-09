@@ -1,17 +1,11 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, JSON, asc, ForeignKey, null
 from sqlalchemy.future import select
 
-from custom_logger.logger import logger 
-
 from data.base import Base
-from data.voices import Voice
+from data.voices import Voice, fetch_voice
 
-from sqlalchemy.future import select
 from db import async_session
-
-from data.voices import fetch_voice
 
 # We don't need to pass the DB object around after it's been initialized by main
 # Simply import async_session from it, or objects made from it around
@@ -24,10 +18,11 @@ class Member(Base):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     pfp_url: Mapped[str] = mapped_column(String, default="")
     num_sessions: Mapped[int] = mapped_column(Integer, default=0) # increment on end/complete session
-    preferred_tts_uid: Mapped[str] = mapped_column(ForeignKey("voices.uid"), nullable=True) 
+    preferred_tts_uid: Mapped[str] = mapped_column(ForeignKey("voices.uid"), nullable=True)
     preferred_tts: Mapped[Voice] = relationship("Voice", lazy="subquery")
 
-    data: Mapped[dict] = mapped_column(JSON, default=dict) # We can store arbitrary data in here if we need extra columns and stuff later, just need to be safe with checking
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
+    # We can store arbitrary data in here if we need extra columns and stuff later, just need to be safe with checking
     # elsewise, we will need to setup alembic and migrations with an updater script/function/exe
 
 
@@ -38,7 +33,7 @@ class Member(Base):
 
     def __eq__(self, other):
         return self.name == other.name
-    
+
 
     def __hash__(self):
         return hash(self.name)
@@ -83,9 +78,9 @@ async def update_tts(member: Member, voice_id: str):
         async with session.begin():
             voice_in_db = await fetch_voice(uid=voice_id)
             member_in_db = await session.get(Member, member.id)
-            if member_in_db and voice_in_db and (member_in_db.preferred_tts_uid != voice_id 
-                                                 or member.preferred_tts_uid != voice_id 
-                                                 or member.preferred_tts != voice_in_db 
+            if member_in_db and voice_in_db and (member_in_db.preferred_tts_uid != voice_id
+                                                 or member.preferred_tts_uid != voice_id
+                                                 or member.preferred_tts != voice_in_db
                                                  or member_in_db.preferred_tts != voice_in_db):
                 member.preferred_tts_uid = voice_id
                 member.preferred_tts = voice_in_db
@@ -101,14 +96,13 @@ async def remove_tts(voice_id: str | list):
     async with async_session() as session:
         async with session.begin():
             result = None
-            if type(voice_id) == str:
+            if isinstance(voice_id, str):
                 result = await session.execute(select(Member).where(Member.preferred_tts_uid == voice_id))
-            elif type(voice_id) == list:
+            elif isinstance(voice_id, list):
                 result = await session.execute(select(Member).where(Member.preferred_tts_uid.in_(voice_id)))
 
             if not result:
                 return
-    
             for member in result.scalars().all():
                 member.preferred_tts_uid = null()
             await session.commit()
@@ -122,21 +116,21 @@ async def fetch_member(name: str) -> Member | None:
         return result.scalars().first()
 
 
-async def fetch_paginated_members(page: int, per_page: int=20, 
+async def fetch_paginated_members(page: int, per_page: int=20,
                                   exclude_names: list[str] = None,
                                   name_filter: str = None) -> list[Member]:
     if not exclude_names:
         exclude_names = []
-    
+
     async with async_session() as session:
         query = select(Member).order_by(asc(Member.name))
 
         if exclude_names:
             query = query.where(Member.name.notin_([name.lower()] for name in exclude_names))
-        
+
         if name_filter:
             query = query.where(Member.name.like(f"%{name_filter.lower()}%"))
-        
+
         offset = (page -1) * per_page
         query = query.offset(offset).limit(per_page)
 
