@@ -1,7 +1,5 @@
+import struct
 from helpers import TCDNDConfig as Config
-from custom_logger.logger import logger
-import base64, io, struct
-from helpers.utils import run_coroutine_sync
 
 def create_wav_header(sample_rate, bits_per_sample, num_channels, data_size):
     # WAV File header
@@ -28,20 +26,20 @@ def create_wav_header(sample_rate, bits_per_sample, num_channels, data_size):
 
 
 class TTS():
-    
+
     voices: dict = dict()
-    
+
     def __init__(self, config: Config):
         self.config = config
 
     def get_voices(self) -> dict:
         return self.voices
-    
+
     async def get_stream(self):
         yield (None, 0)
 
     def list_voices(self) -> list:
-        return list()
+        return []
 
     def voice_list_message(self) -> str:
         return "Available Voices: " + ", ".join(self.list_voices())

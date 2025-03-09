@@ -1,9 +1,13 @@
-import os, sys
+import os
+import sys
 
 import asyncio
-import threading
-import time
 import argparse
+from queue import Queue
+
+import static_ffmpeg
+from alembic.config import Config as AlembicConfig
+from alembic import command as alembic_command
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the application.")
@@ -14,9 +18,6 @@ cwd = os.getcwd()
 args = parse_args()
 os.environ['TCDND_DEBUG_MODE'] = '1' if args.debug else '0'
 
-import static_ffmpeg
-
-from queue import Queue
 _tasks = Queue()
 
 if getattr(sys, 'frozen', False):
@@ -25,7 +26,7 @@ if getattr(sys, 'frozen', False):
     sys.path.insert(0, src_path)
 
 import helpers.event as _event_module
-setattr(sys.modules[_event_module.__name__], '_task_queue', _tasks)
+setattr(sys.modules[_event_module.__name__], '_TASK_QUEUE', _tasks)
 
 from twitch.utils import TwitchUtils
 from twitch.chat import ChatController
@@ -44,13 +45,11 @@ from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_se
 from custom_logger.logger import logger
 from db import initialize_database
 
-import static_ffmpeg
+
 logger.info("Setting up ffmpeg...")
 static_ffmpeg.add_paths()
 logger.info("Done setting up ffmpeg")
 
-from alembic.config import Config as AlembicConfig
-from alembic import command as alembic_command
 
 def run_migrations():
     logger.info("Running DB Migrations...")
@@ -96,7 +95,7 @@ async def run_twitch():
             await asyncio.sleep(5)
         logger.info("Starting Twitch Client...")
 
-        try: 
+        try:
             if twitch_utils.twitch:
                 return True
             ui_settings_twitch_auth_update_event.trigger()
@@ -124,11 +123,11 @@ async def run_twitch():
 async def run_twitch_bot():
     while not twitch_utils.twitch:
         await asyncio.sleep(5)
-    
+
     async def try_channel():
         while not twitch_utils.channel:
             await asyncio.sleep(5)
-        try:   
+        try:
             if twitch_utils.channel and chat.chat.is_connected:
                 return True
             await asyncio.sleep(4)
@@ -139,7 +138,7 @@ async def run_twitch_bot():
             if "Channel not found" in str(e):
                 return False
             raise
-    
+
     success = False
     while not success:
         success = await try_channel()
@@ -194,7 +193,7 @@ async def startup_completion():
 
 
 async def run_all():
-    
+
     tasks = [
         asyncio.create_task(run_server(), name="Server"),
         asyncio.create_task(run_twitch(), name="Twitch"),
@@ -204,7 +203,7 @@ async def run_all():
         asyncio.create_task(startup_completion(), name="Finish-Startup")
     ]
 
-    try: 
+    try:
         await asyncio.gather(*tasks)
     except Exception as e:
         logger.error(f"An exception has occurred: {e}")

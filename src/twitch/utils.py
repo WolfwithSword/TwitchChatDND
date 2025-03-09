@@ -1,16 +1,11 @@
-import logging
-import re
+from typing import List
+import webbrowser
 
 from twitchAPI.helper import first
 from twitchAPI.object.api import TwitchUser
 from twitchAPI.twitch import Twitch
 from twitchAPI.oauth import UserAuthenticationStorageHelper, CodeFlow
 from twitchAPI.type import AuthScope
-
-from typing import List
-import webbrowser
-
-from helpers.config import TCDNDConfig
 
 from diskcache import Cache
 
@@ -35,10 +30,10 @@ class TwitchUtils:
                 self.cache = Cache(directory=cache_dir)
         else:
             self.cache = None
-        
+
         ui_settings_twitch_auth_update_event.addListener(self.start)
 
-    
+
     async def _token_gen(self, twitch: Twitch, target_scope: List[AuthScope]) -> (str, str):
         code_flow = CodeFlow(twitch, target_scope)
         # Local callback didnt work, but CodeFlow does. Will open browser for it, then store locally due to StorageHelper
@@ -50,10 +45,11 @@ class TwitchUtils:
 
     async def start(self):
         self.twitch = None
-        SCOPES = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT] # TODO may need more as time goes on
+        scopes = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT] # TODO may need more as time goes on
         try:
             self.twitch = await Twitch(app_id=self.config.twitch_auth, authenticate_app=False)
-            helper = UserAuthenticationStorageHelper(self.twitch, SCOPES, auth_generator_func=self._token_gen)
+            helper = UserAuthenticationStorageHelper(self.twitch, scopes,
+                                                     auth_generator_func=self._token_gen)
             await helper.bind()
         except Exception as e:
             logger.error(e)
@@ -72,7 +68,7 @@ class TwitchUtils:
         key = f"{username}.twitch.user"
         if self.cache is not None:
             user = self.cache.get(key=key, default=None)
-            if user:  
+            if user:
                 logger.debug(f"Fetched twitch user `{username}`")
                 return user
 
@@ -83,7 +79,9 @@ class TwitchUtils:
             user = None
         if user and user.display_name.lower() == username.lower():
             if self.cache is not None:
-                self.cache.set(key=key, expire=self.config.getint(section="CACHE", option="cache_expiry", fallback=7*24*60*60), value=user)
+                self.cache.set(key=key, expire=self.config.getint(section="CACHE",
+                                                                  option="cache_expiry",
+                                                                  fallback=7*24*60*60), value=user)
             logger.debug(f"Fetched twitch user `{username}`")
             return user
         return None

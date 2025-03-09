@@ -1,9 +1,7 @@
 from typing import Set, List
-import random
+from enum import Enum, auto
 
 from data.member import Member
-
-from enum import Enum, auto
 
 class SessionState(Enum):
     NONE = auto()

@@ -180,7 +180,7 @@ class CTkSegmentedButton(CTkFrame):
 
     @staticmethod
     def _check_unique_values(values: List[str]):
-        # raises exception if values are not unique 
+        # raises exception if values are not unique
         if len(values) != len(set(values)):
             raise ValueError("CTkSegmentedButton values are not unique")
 

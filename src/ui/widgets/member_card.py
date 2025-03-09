@@ -1,8 +1,9 @@
-import customtkinter as ctk
-from PIL import Image
-import requests
+
 from io import BytesIO
 import asyncio
+import requests
+import customtkinter as ctk
+from PIL import Image
 
 from data import Member
 from custom_logger.logger import logger
@@ -74,7 +75,7 @@ class MemberEditCard(ctk.CTkToplevel):
         self.title(f"Edit {self.member.name.upper()}")
         self.geometry("400x400")
         self.resizable(False, False)
-        self.protocol("WM_DELETE_WINDOW", self.close_popup) 
+        self.protocol("WM_DELETE_WINDOW", self.close_popup)
 
         self.tts = {
             SOURCE_LOCAL: LocalTTS(self.config, False),
@@ -84,14 +85,14 @@ class MemberEditCard(ctk.CTkToplevel):
         self.attributes("-topmost", True)
 
         self.create_widgets()
-        #self.deiconify() 
+        #self.deiconify()
 
 
     def create_widgets(self):
         # TODO add stuff, make pretty, idk
         label1 = ctk.CTkLabel(self, text="TTS Voice Source:")
         label1.pack(pady=(20, 5))
-        
+
 
         self.label = ctk.CTkLabel(self, text="TTS Voice:")
         self.label.pack(pady=(20, 5))
@@ -101,7 +102,7 @@ class MemberEditCard(ctk.CTkToplevel):
         db_member = run_coroutine_sync(fetch_member(name=self.member.name))
         if db_member.preferred_tts_uid and db_member.preferred_tts:
             current_source = db_member.preferred_tts.source
-        
+
         self.tts_source_var = ctk.StringVar(value=current_source)
         valid_sources = SOURCES[:]
         if not self.config.get(section="ELEVENLABS", option="api_key"):
@@ -124,7 +125,7 @@ class MemberEditCard(ctk.CTkToplevel):
 
         self.tts_source_dropdown.pack(pady=(5, 20))
         self.tts_dropdown.pack(pady=(5, 20))
-        
+
         self.test_button = ctk.CTkButton(self, text="Preview", command=self.test_tts)
         self.test_button.pack(pady=10)
 

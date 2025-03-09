@@ -1,8 +1,6 @@
 import asyncio
 import threading
-import base64, io, struct
-
-from tts.tts import TTS, create_wav_header
+import io
 
 from elevenlabs.client import AsyncElevenLabs
 from elevenlabs.client import ElevenLabs
@@ -10,6 +8,8 @@ from elevenlabs.types import Voice as ELVoice
 from elevenlabs import play
 
 from diskcache import Cache
+
+from tts.tts import TTS, create_wav_header
 
 from helpers import TCDNDConfig as Config
 from helpers.utils import run_coroutine_sync
@@ -37,7 +37,7 @@ class ElevenLabsTTS(TTS):
             request_elevenlabs_connect.addListener(self.setup)
             self.setup()
             on_elevenlabs_test_speak.addListener(self.test_speak)
-        
+
         self.sample_rate = int(FORMAT.split("_")[-1])
         self.bits_per_sample = 16
         self.num_channels = 1
@@ -75,7 +75,7 @@ class ElevenLabsTTS(TTS):
                 count = user_subscription.character_count
                 limit = user_subscription.character_limit
                 on_elevenlabs_subscription_update.trigger([count, limit])
-                
+
                 self.client = AsyncElevenLabs(api_key=key)
                 if self.full_instance:
                     # Remove all voices from system if they are not available on the account anymore
@@ -85,14 +85,14 @@ class ElevenLabsTTS(TTS):
                     for uid in db_voice_ids:
                         if uid not in available_voices:
                             unavailable_voices.append(uid)
-                    
+
                     if unavailable_voices:
-                        result0 = run_coroutine_sync(remove_tts(voice_id=unavailable_voices))
-                        result1 = run_coroutine_sync(delete_voice(uid=unavailable_voices, source=SOURCE_11L))
+                        run_coroutine_sync(remove_tts(voice_id=unavailable_voices))
+                        run_coroutine_sync(delete_voice(uid=unavailable_voices, source=SOURCE_11L))
                     on_elevenlabs_connect.trigger([True])
 
             except Exception as e:
-                logger.warn(f"ElevenLabs Exception: {e}")
+                logger.warning(f"ElevenLabs Exception: {e}")
                 if self.full_instance:
                     on_elevenlabs_connect.trigger([False])
 
@@ -100,7 +100,7 @@ class ElevenLabsTTS(TTS):
     async def audio_stream_generator(self, text="Hello World!", voice_id: str = None):
         if not voice_id or not self.client:
             return
-        
+
         async def fetch_stream(client, text, voice_id, model, _format):
             output = io.BytesIO()
             async for chunk in client.text_to_speech.convert_as_stream(text=text,
@@ -115,9 +115,9 @@ class ElevenLabsTTS(TTS):
     async def get_stream(self, text="Hello World!", voice_id: str = None):
         if not voice_id or not self.client:
             yield None, None
-        
+
         output = await self.audio_stream_generator(text, voice_id)
-        
+
         header = create_wav_header(self.sample_rate, self.bits_per_sample, self.num_channels, len(output.getvalue()))
         chunk_size = min(self.max_chunk_size, len(output.getvalue()))
         chunk = output.read(chunk_size)
@@ -127,8 +127,8 @@ class ElevenLabsTTS(TTS):
             await asyncio.sleep(duration)
             yield (header + chunk, duration)
             chunk = output.read(chunk_size)
-        
-        
+
+
         user_subscription = await self.client.user.get_subscription()
         count = user_subscription.character_count
         limit = user_subscription.character_limit
@@ -154,11 +154,11 @@ class ElevenLabsTTS(TTS):
                     unavailable_voices.append(uid)
                     db_voice_ids.remove(uid)
                     did_import = True
-            
+
             if unavailable_voices:
-                result0 = run_coroutine_sync(remove_tts(voice_id=unavailable_voices))
-                result1 = run_coroutine_sync(delete_voice(uid=unavailable_voices, source=SOURCE_11L))
-                
+                run_coroutine_sync(remove_tts(voice_id=unavailable_voices))
+                run_coroutine_sync(delete_voice(uid=unavailable_voices, source=SOURCE_11L))
+
             for uid in available_voices:
                 if uid not in db_voice_ids:
                     r = self.get_voice_object(voice_id=uid, run_sync_always=run_sync_always)
@@ -177,7 +177,7 @@ class ElevenLabsTTS(TTS):
             v = self.cache.get(key=key, default=None)
             if v:
                 logger.debug(f"Fetched cached preview audio for `{voice_id}`")
-    
+
         if not v:
             client = ElevenLabs(api_key=self.config.get(section="ELEVENLABS", option="api_key"))
             v = None
@@ -185,12 +185,11 @@ class ElevenLabsTTS(TTS):
                 x = client.voices.get_all().voices
                 y = [o.voice_id for o in x]
                 if voice_id not in y:
-                    logger.warn(f"Elevenlabs Voice Id '{voice_id}' is not added to your account. Cannot fetch")
+                    logger.warning(f"Elevenlabs Voice Id '{voice_id}' is not added to your account. Cannot fetch")
                     return None
                 v = client.voices.get(voice_id)
             except Exception as e:
                 logger.error(e)
-                pass
             if v:
                 self.cache.set(key=key, expire=self.config.getint(section="CACHE", option="tts_cache_expiry", fallback=7*24*60*60*4*3), value=v)
 
@@ -246,7 +245,7 @@ class ElevenLabsTTS(TTS):
             audio = list(client.generate(text=text, voice=voice_id, model=MODEL))
             self.cache.set(key=key, expire=self.config.getint(section="CACHE", option="tts_cache_expiry", fallback=7*24*60*60*4*3), value=list(audio))
             audio = iter(audio)
-            
+
             user_subscription = client.user.get_subscription()
             count = user_subscription.character_count
             limit = user_subscription.character_limit

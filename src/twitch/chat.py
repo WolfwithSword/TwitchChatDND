@@ -1,6 +1,6 @@
 import asyncio
 from twitchAPI.chat import Chat, ChatCommand, EventData
-from twitchAPI.chat.middleware import UserRestriction, ChannelRestriction, ChannelCommandCooldown, ChannelUserCommandCooldown
+from twitchAPI.chat.middleware import UserRestriction, ChannelCommandCooldown, ChannelUserCommandCooldown
 from twitchAPI.object.api import TwitchUser
 from twitchAPI.type import ChatEvent
 
@@ -23,7 +23,7 @@ from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_even
 from tts import ElevenLabsTTS, LocalTTS
 
 
-class ChatController(Chat):
+class ChatController:
     def __init__(self, session_mgr: SessionManager, config: Config):
         self.twitch_utils: TwitchUtils = None
         self.twitch: Twitch = None

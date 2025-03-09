@@ -23,12 +23,12 @@ from helpers.utils import get_resource_path
 from chatdnd.events.ui_events import ui_request_floating_notif
 
 class DesktopApp(ctk.CTk):
-    
+
     def __init__(self, session_mgr: SessionManager, chat_ctrl: ChatController, config: Config, twitch_utils: TwitchUtils):
         super().__init__()
         self.running = True
         self.protocol("WM_DELETE_WINDOW", self.on_close)
-        
+
         self.resizable(False, False)
         self.config:Config = config
         self.twitch_utils = twitch_utils
@@ -71,18 +71,18 @@ class DesktopApp(ctk.CTk):
 
 
     def on_close(self):
-        logger.info("Shutting down...") 
+        logger.info("Shutting down...")
         self.running = False
         self.destroy()
 
 
     def _show_floating_notif(self, text: str, _type: NotifyType, data: dict = {}):
         if text and _type:
-            if data is not None and type(data) == dict:
+            if data is not None and isinstance(data, dict):
                 data.setdefault("bg_color", "#202020")
                 data.setdefault("text_color", "#b0b0b0")
                 data.setdefault("duration", 6000)
                 self.notification_manager.show_notification(text, _type, **data)
-            
+
             else:
                 self.notification_manager.show_notification(text, _type)
