@@ -127,10 +127,18 @@ async def run_twitch_bot():
         while not twitch_utils.channel:
             await asyncio.sleep(5)
         try:
-            if twitch_utils.channel and chat.chat.is_connected:
+            if (
+                twitch_utils.channel
+                and chat.chat is not None
+                and chat.chat.is_connected
+            ):
                 return True
             await asyncio.sleep(4)
-            if twitch_utils.channel and chat.chat.is_connected:
+            if (
+                twitch_utils.channel
+                and chat.chat is not None
+                and chat.chat.is_connected
+            ):
                 return True
             return False
         except Exception as e:
