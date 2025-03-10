@@ -75,7 +75,9 @@ class DesktopApp(ctk.CTk):
         self.running = False
         self.destroy()
 
-    def _show_floating_notif(self, text: str, _type: NotifyType, data: dict = {}):
+    def _show_floating_notif(
+        self, text: str, _type: NotifyType, data: dict = {}
+    ):  # pylint: disable=dangerous-default-value
         if text and _type:
             if data is not None and isinstance(data, dict):
                 data.setdefault("bg_color", "#202020")

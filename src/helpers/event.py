@@ -20,12 +20,12 @@ class Event:
 
         return wrapper
 
-    def addListener(self, func):
+    def addListener(self, func):  # pylint: disable=invalid-name
         if func in self.__listeners:
             return
         self.__listeners.append(func)
 
-    def removeListener(self, func):
+    def removeListener(self, func):  # pylint: disable=invalid-name
         if func not in self.__listeners:
             return
         self.__listeners.remove(func)

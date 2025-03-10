@@ -460,7 +460,12 @@ class SettingsTab:
             while self.e11_voices.size():
                 self.e11_voices.deactivate("END")
                 self.e11_voices.delete("END")
-        for k in client.get_voices().keys():
+
+        for (
+            k
+        ) in (
+            client.get_voices().keys()  # pylint: disable=consider-iterating-dictionary
+        ):
             self.e11_voices.insert("END", option=k)
         self.del_v_button.configure(state="disabled")
         self.preview_v_button.configure(state="disabled")
