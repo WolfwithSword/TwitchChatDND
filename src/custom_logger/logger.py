@@ -4,6 +4,11 @@ import sys
 from logging.handlers import RotatingFileHandler, QueueHandler, QueueListener
 from queue import Queue
 
+from helpers.utils import parse_args
+
+args = parse_args()
+os.environ["TCDND_DEBUG_MODE"] = "1" if args.debug else "0"
+
 LOGGER_FORMAT = (
     "%(asctime)s [%(threadName)s] [%(name)s] [%(module)s] [%(levelname)s] - %(message)s"
 )
