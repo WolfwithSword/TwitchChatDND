@@ -1,7 +1,5 @@
 import asyncio
 import customtkinter as ctk
-from custom_logger.logger import logger
-
 from ui.widgets.member_card import MemberCard
 from data.member import fetch_paginated_members
 

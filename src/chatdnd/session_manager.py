@@ -4,7 +4,8 @@ from data import Session, Member, SessionState
 from chatdnd.events.session_events import on_party_update
 from chatdnd.events.web_events import on_overlay_open
 
-class SessionManager():
+
+class SessionManager:
     def __init__(self):
         self.session = Session()
         on_overlay_open.addListener(self.trigger_update)

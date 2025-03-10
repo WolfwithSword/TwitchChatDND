@@ -11,15 +11,18 @@ from _version import __version__ as current_version
 
 T = TypeVar("T")
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the application.")
-    parser.add_argument('--debug', action='store_true', help="Enable debug logging level.")
+    parser.add_argument(
+        "--debug", action="store_true", help="Enable debug logging level."
+    )
     return parser.parse_args()
 
 
 def get_resource_path(relative_path, from_resources: bool = False):
     # Get absolute path to a resource, frozen or local (relative to helpers/utils.py)
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         base_path = sys._MEIPASS
         if from_resources:
             relative_path = relative_path.replace("../", "")
@@ -59,7 +62,7 @@ def run_coroutine_sync(coroutine: Coroutine[Any, Any, T], timeout: float = 30) -
 
 
 def check_for_updates():
-    owner = "WolfwithSword" # TODO consider moving to a metadata file?
+    owner = "WolfwithSword"  # TODO consider moving to a metadata file?
     repo = "TwitchChatDND"
     url = f"https://api.github.com/repos/{owner}/{repo}/releases"
     response = requests.get(url, timeout=10)
@@ -69,14 +72,14 @@ def check_for_updates():
     data = response.json()
     if not data:
         return None
-    latest_release = sorted(data, key = lambda d: d['published_at'], reverse=True)[0]
-    latest = latest_release['tag_name']
+    latest_release = sorted(data, key=lambda d: d["published_at"], reverse=True)[0]
+    latest = latest_release["tag_name"]
 
-    if current_version == 'dev':
+    if current_version == "dev":
         return f"https://github.com/{owner}/{repo}/releases/tag/{latest}"
-    elif 'nightly' in current_version:
+    elif "nightly" in current_version:
         return f"https://github.com/{owner}/{repo}/releases/tag/nightly"
     else:
-        if Version(current_version.replace("v","")) < Version(latest.replace("v","")):
+        if Version(current_version.replace("v", "")) < Version(latest.replace("v", "")):
             return f"https://github.com/{owner}/{repo}/releases/tag/{latest}"
     return None

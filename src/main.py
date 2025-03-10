@@ -18,13 +18,12 @@ from helpers.utils import check_for_updates, parse_args
 from ui.app import DesktopApp
 from server.app import ServerApp
 
-from _version import __version__
 
 from chatdnd import SessionManager
 from chatdnd.events.ui_events import (
     ui_settings_twitch_auth_update_event,
     ui_on_startup_complete,
-    ui_fetch_update_check_event
+    ui_fetch_update_check_event,
 )
 
 from custom_logger.logger import logger
@@ -34,11 +33,11 @@ cwd = os.getcwd()
 
 _tasks = Queue()
 
-setattr(sys.modules[_event_module.__name__], '_TASK_QUEUE', _tasks)
+setattr(sys.modules[_event_module.__name__], "_TASK_QUEUE", _tasks)
 
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     base_path = sys._MEIPASS
-    src_path = os.path.join(base_path, 'src')
+    src_path = os.path.join(base_path, "src")
     sys.path.insert(0, src_path)
 
 logger.info("Setting up ffmpeg...")
@@ -48,11 +47,11 @@ logger.info("Done setting up ffmpeg")
 
 def run_migrations():
     logger.info("Running DB Migrations...")
-    if getattr(sys, 'frozen', False):
-        alembic_cfg = AlembicConfig(os.path.join(cwd, 'alembic.ini'))
-        script_location = os.path.join(cwd, 'migrations')
+    if getattr(sys, "frozen", False):
+        alembic_cfg = AlembicConfig(os.path.join(cwd, "alembic.ini"))
+        script_location = os.path.join(cwd, "migrations")
     else:
-        alembic_cfg = AlembicConfig(os.path.join(cwd, 'alembic.ini'))
+        alembic_cfg = AlembicConfig(os.path.join(cwd, "alembic.ini"))
         script_location = os.path.join(os.path.dirname(__file__), "..", "migrations")
     logger.info(f"DB Migrations config: {alembic_cfg.config_file_name}")
     logger.info(f"DB Migrations folder: {script_location}")
@@ -61,19 +60,21 @@ def run_migrations():
     alembic_command.upgrade(alembic_cfg, "head")
     logger.info("Finished DB Migrations")
 
+
 async def run_db_init():
     run_migrations()
     await initialize_database()
 
-asyncio.run(run_db_init())#"DB-Setup"
 
-config_path = os.path.join(cwd, 'config.ini')
-cache_dir = os.path.join(cwd, '.tcdnd-cache/')
+asyncio.run(run_db_init())  # "DB-Setup"
+
+config_path = os.path.join(cwd, "config.ini")
+cache_dir = os.path.join(cwd, ".tcdnd-cache/")
 
 config = Config()
 config.setup(config_path)
 
-if not config.has_option(section="CACHE",option="directory"):
+if not config.has_option(section="CACHE", option="directory"):
     config.set(section="CACHE", option="directory", value=cache_dir)
 
 twitch_utils = TwitchUtils(config, cache_dir)
@@ -84,6 +85,7 @@ chat: ChatController = ChatController(session_mgr, config)
 server = ServerApp(config)
 
 APP_RUNNING = True
+
 
 async def run_twitch():
     async def try_setup():
@@ -150,6 +152,7 @@ async def run_twitch_bot():
 
 logger.info("Starting")
 
+
 async def run_server():
     await server.run_task(host="0.0.0.0")
 
@@ -163,6 +166,7 @@ async def run_ui():
     APP_RUNNING = False
     await asyncio.sleep(2)
     sys.exit(0)
+
 
 async def run_queued_tasks():
     while APP_RUNNING:
@@ -197,7 +201,7 @@ async def run_all():
         asyncio.create_task(run_ui(), name="UI"),
         asyncio.create_task(run_twitch_bot(), name="Twitch-Bot"),
         asyncio.create_task(run_queued_tasks(), name="Task-Queue"),
-        asyncio.create_task(startup_completion(), name="Finish-Startup")
+        asyncio.create_task(startup_completion(), name="Finish-Startup"),
     ]
 
     try:
@@ -211,8 +215,9 @@ async def run_all():
             except asyncio.CancelledError:
                 logger.warning(f"{task.get_name()} task was cancelled")
 
+
 if __name__ == "__main__":
     args = parse_args()
-    os.environ['TCDND_DEBUG_MODE'] = '1' if args.debug else '0'
+    os.environ["TCDND_DEBUG_MODE"] = "1" if args.debug else "0"
 
     asyncio.run(run_all())
