@@ -16,17 +16,8 @@ from tts import ElevenLabsTTS, LocalTTS
 
 class MemberCard(ctk.CTkFrame):
 
-    def __init__(
-        self,
-        parent,
-        member: Member,
-        config: Config,
-        width=160,
-        height=200,
-        textsize=12,
-        *args,
-        **kwargs,
-    ):
+    # fmt: skip
+    def __init__(self, parent, member: Member, config: Config, width=160, height=200, textsize=12, *args, **kwargs):
         super().__init__(parent, width=width, height=height, *args, **kwargs)
         self.member: Member = member
         self.config: Config = config
@@ -71,9 +62,7 @@ class MemberCard(ctk.CTkFrame):
         except Exception as e:
             logger.warning(f"Could not fetch image for {self.member}. {e}")
             self.bg_image = None
-            self.bg_label = ctk.CTkLabel(
-                self, text="No Image", font=("Arial", self.textsize)
-            )
+            self.bg_label = ctk.CTkLabel(self, text="No Image", font=("Arial", self.textsize))
             self.bg_label.grid(row=0, column=0, sticky="nsew")
             self.bg_label.bind("<Button-1>", self.open_edit_popup)
 
@@ -138,10 +127,7 @@ class MemberEditCard(ctk.CTkToplevel):
         self.tts_options = list(voices.keys())
         self.tts_dropdown = ctk.CTkOptionMenu(self, values=self.tts_options)
 
-        if (
-            self.member.preferred_tts_uid
-            and self.member.preferred_tts_uid in voices.values()
-        ):
+        if self.member.preferred_tts_uid and self.member.preferred_tts_uid in voices.values():
             for k, v in voices.items():
                 if v == self.member.preferred_tts_uid:
                     self.tts_dropdown.set(value=k)
@@ -162,10 +148,7 @@ class MemberEditCard(ctk.CTkToplevel):
         voices = self.tts[choice].get_voices()
         self.tts_options = list(voices.keys())
         self.tts_dropdown.configure(values=self.tts_options)
-        if (
-            self.member.preferred_tts_uid
-            and self.member.preferred_tts_uid in voices.values()
-        ):
+        if self.member.preferred_tts_uid and self.member.preferred_tts_uid in voices.values():
             for k, v in voices.items():
                 if v == self.member.preferred_tts_uid:
                     self.tts_dropdown.set(value=k)
@@ -174,9 +157,7 @@ class MemberEditCard(ctk.CTkToplevel):
             self.tts_dropdown.set(value=self.tts_options[0])
 
     def test_tts(self):
-        voice_id = self.tts[self.tts_source_var.get()].get_voices()[
-            self.tts_dropdown.get()
-        ]
+        voice_id = self.tts[self.tts_source_var.get()].get_voices()[self.tts_dropdown.get()]
         self.tts[self.tts_source_var.get()].test_speak(voice_id=voice_id)
 
     def save_changes(self):

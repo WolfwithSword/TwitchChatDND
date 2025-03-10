@@ -65,19 +65,15 @@ class SettingsTab:
         )
         check_update_button.grid(row=row, column=column, padx=10, pady=(30, 2))
 
-        img = Image.open(
-            get_resource_path("../../images/logo.png", from_resources=True)
-        )
+        img = Image.open(get_resource_path("../../images/logo.png", from_resources=True))
         resize_method = Image.Resampling.LANCZOS
-        img = img.resize((256, int(128*1.5)), resize_method)
-        logo_image = ctk.CTkImage(img, img, (256, int(128*1.5)))
+        img = img.resize((256, int(128 * 1.5)), resize_method)
+        logo_image = ctk.CTkImage(img, img, (256, int(128 * 1.5)))
         logo_label = ctk.CTkLabel(self.parent, image=logo_image, text="")
         logo_label.grid(row=0, column=5, sticky="ne", rowspan=2, columnspan=3)
         logo_label.bind(
             "<Button-1>",
-            lambda e: webbrowser.open(
-                "https://github.com/WolfwithSword/TwitchChatDND", new=0, autoraise=True
-            ),
+            lambda e: webbrowser.open("https://github.com/WolfwithSword/TwitchChatDND", new=0, autoraise=True),
         )
         logo_label.bind("<Enter>", lambda e: logo_label.configure(cursor="hand2"))
         logo_label.bind("<Leave>", lambda e: logo_label.configure(cursor=""))
@@ -89,22 +85,16 @@ class SettingsTab:
         label = ctk.CTkLabel(self.parent, text="Twitch Bot", font=header_font)
         label.grid(row=row, column=column, padx=10, pady=(30, 2), sticky="ew")
         column += 1
-        self.t_con_label = ctk.CTkLabel(
-            self.parent, text="Twitch Disconnected", text_color="red"
-        )
+        self.t_con_label = ctk.CTkLabel(self.parent, text="Twitch Disconnected", text_color="red")
         self.t_con_label.grid(row=row, column=column, padx=10, pady=(30, 2))
         column += 1
-        self.chat_con_label = ctk.CTkLabel(
-            self.parent, text="Chat Disconnected", text_color="red"
-        )
+        self.chat_con_label = ctk.CTkLabel(self.parent, text="Chat Disconnected", text_color="red")
         self.chat_con_label.grid(row=row, column=column, padx=10, pady=(30, 2))
         chat_bot_on_connect.addListener(self._update_bot_connection)
         column = 0
         row += 1
 
-        button = ctk.CTkButton(
-            self.parent, height=30, text="Save", command=self._update_bot_settings
-        )
+        button = ctk.CTkButton(self.parent, height=30, text="Save", command=self._update_bot_settings)
         button.grid(row=row, column=column, padx=10, pady=(20, 10))
         column += 1
         chan_label = ctk.CTkLabel(self.parent, text="Channel")
@@ -125,30 +115,18 @@ class SettingsTab:
             self.parent,
             width=180,
             height=30,
-            text=(
-                "None"
-                if not self.twitch_utils.channel
-                else self.twitch_utils.channel.display_name
-            ),
+            text=("None" if not self.twitch_utils.channel else self.twitch_utils.channel.display_name),
             font=bold_font,
         )
         self.twitch_channel.configure(justify="center")
 
         self.twitch_channel.grid(row=row, column=column, padx=(20, 20), pady=(2, 20))
         column += 1
-        self.prefix_var = ctk.StringVar(
-            value=self.config.get(section="BOT", option="prefix", fallback="!").strip()[
-                0
-            ]
-        )
-        prefix_options = ctk.CTkSegmentedButton(
-            self.parent, values=["!", "~", "+", "&"], variable=self.prefix_var
-        )
+        self.prefix_var = ctk.StringVar(value=self.config.get(section="BOT", option="prefix", fallback="!").strip()[0])
+        prefix_options = ctk.CTkSegmentedButton(self.parent, values=["!", "~", "+", "&"], variable=self.prefix_var)
         prefix_options.grid(row=row, column=column, padx=(20, 20), pady=(2, 20))
         column += 1
-        self.join_cmd_var = ctk.StringVar(
-            value=self.config.get(section="BOT", option="join_command", fallback="")
-        )
+        self.join_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="join_command", fallback=""))
         join_cmd_entry = ctk.CTkEntry(
             self.parent,
             width=100,
@@ -162,9 +140,7 @@ class SettingsTab:
         join_cmd_entry.grid(row=row, column=column, padx=(20, 20), pady=(2, 20))
         join_cmd_entry.configure(justify="center")
         column += 1
-        self.speak_cmd_var = ctk.StringVar(
-            value=self.config.get(section="BOT", option="speak_command", fallback="")
-        )
+        self.speak_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="speak_command", fallback=""))
         speak_cmd_entry = ctk.CTkEntry(
             self.parent,
             width=100,
@@ -189,9 +165,7 @@ class SettingsTab:
         voices_cmd_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
         row += 1
         column -= 1
-        self.voice_cmd_var = ctk.StringVar(
-            value=self.config.get(section="BOT", option="voice_command", fallback="")
-        )
+        self.voice_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="voice_command", fallback=""))
         voice_cmd_entry = ctk.CTkEntry(
             self.parent,
             width=100,
@@ -205,9 +179,7 @@ class SettingsTab:
         voice_cmd_entry.grid(row=row, column=column, padx=(20, 20), pady=(2, 20))
         voice_cmd_entry.configure(justify="center")
         column += 1
-        self.listvoice_cmd_var = ctk.StringVar(
-            value=self.config.get(section="BOT", option="voices_command", fallback="")
-        )
+        self.listvoice_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="voices_command", fallback=""))
         voices_cmd_entry = ctk.CTkEntry(
             self.parent,
             width=100,
@@ -226,32 +198,22 @@ class SettingsTab:
         ####### Web Srv ########
         row += 1
         column = 0
-        label_web = ctk.CTkLabel(
-            self.parent, text="Browser Source", anchor="w", font=header_font
-        )
+        label_web = ctk.CTkLabel(self.parent, text="Browser Source", anchor="w", font=header_font)
         label_web.grid(row=row, column=column, padx=10, pady=(30, 10))
         row += 1
-        button_websrv = ctk.CTkButton(
-            self.parent, height=30, text="Save", command=self._update_websrv_settings
-        )
+        button_websrv = ctk.CTkButton(self.parent, height=30, text="Save", command=self._update_websrv_settings)
         button_websrv.grid(row=row, column=column, padx=10, pady=(20, 10))
 
         column += 1
-        self.label_bs_var = ctk.StringVar(
-            value=f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay"
-        )
-        label_bs = ctk.CTkEntry(
-            self.parent, textvariable=self.label_bs_var, state="readonly", width=190
-        )
+        self.label_bs_var = ctk.StringVar(value=f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay")
+        label_bs = ctk.CTkEntry(self.parent, textvariable=self.label_bs_var, state="readonly", width=190)
         label_bs.grid(row=row, column=column, padx=(10, 2), pady=(10, 2))
 
         def _copy_web_clipboard():
             self.parent.clipboard_clear()
             self.parent.clipboard_append(label_bs.get())
 
-        button_web = ctk.CTkButton(
-            self.parent, width=30, height=30, text="Copy", command=_copy_web_clipboard
-        )
+        button_web = ctk.CTkButton(self.parent, width=30, height=30, text="Copy", command=_copy_web_clipboard)
         column += 1
         button_web.grid(row=row, column=column, padx=(2, 10), pady=(10, 2), sticky="w")
 
@@ -260,9 +222,7 @@ class SettingsTab:
         port_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
 
         row += 1
-        self.port_var = ctk.StringVar(
-            value=self.config.get(section="SERVER", option="port", fallback="5000")
-        )
+        self.port_var = ctk.StringVar(value=self.config.get(section="SERVER", option="port", fallback="5000"))
         self.port_var.trace_add("write", self._validate_port)
         port_entry = ctk.CTkEntry(
             self.parent,
@@ -280,14 +240,10 @@ class SettingsTab:
         ######### 11L TTS ##########
         row += 1
         column = 0
-        label_tts = ctk.CTkLabel(
-            self.parent, text="ElevenLabs TTS", anchor="w", font=header_font
-        )
+        label_tts = ctk.CTkLabel(self.parent, text="ElevenLabs TTS", anchor="w", font=header_font)
         label_tts.grid(row=row, column=column, padx=10, pady=(40, 10))
         column += 1
-        self.e11labs_con_label = ctk.CTkLabel(
-            self.parent, text="ElevenLabs Disconnected", text_color="red"
-        )
+        self.e11labs_con_label = ctk.CTkLabel(self.parent, text="ElevenLabs Disconnected", text_color="red")
         self.e11labs_con_label.grid(row=row, column=column, padx=10, pady=(30, 2))
 
         column += 1
@@ -296,9 +252,7 @@ class SettingsTab:
 
         row += 1
         column = 0
-        button_el = ctk.CTkButton(
-            self.parent, height=30, text="Save", command=self._update_el_settings
-        )
+        button_el = ctk.CTkButton(self.parent, height=30, text="Save", command=self._update_el_settings)
         button_el.grid(row=row, column=column, padx=10, pady=(20, 10))
         column += 1
         el_api_label = ctk.CTkLabel(self.parent, text="API Key")
@@ -309,9 +263,7 @@ class SettingsTab:
 
         column = 1
         row += 1
-        self.el_api_key_var = ctk.StringVar(
-            value=self.config.get(section="ELEVENLABS", option="api_key", fallback="")
-        )
+        self.el_api_key_var = ctk.StringVar(value=self.config.get(section="ELEVENLABS", option="api_key", fallback=""))
         el_api_key_entry = ctk.CTkEntry(
             self.parent,
             width=180,
@@ -323,32 +275,20 @@ class SettingsTab:
             textvariable=self.el_api_key_var,
         )
         el_api_key_entry.configure(justify="center", show="*")
-        el_api_key_entry.grid(
-            row=row, column=column, padx=(20, 20), pady=(2, 20), sticky="n"
-        )
+        el_api_key_entry.grid(row=row, column=column, padx=(20, 20), pady=(2, 20), sticky="n")
 
-        self.e11_voices = CTkListbox(
-            self.parent, width=450, height=200, command=self._on_voice_option_select
-        )
+        self.e11_voices = CTkListbox(self.parent, width=450, height=200, command=self._on_voice_option_select)
 
         column += 1
         self.e11_voices.grid(row=row, column=column, columnspan=3)
         column += 3
 
         # could undo some of these self's if in a method?
-        self.add_import_button = ctk.CTkButton(
-            self.parent, height=30, text="Import All", command=self._import_e11_all
-        )
-        self.add_import_button.grid(
-            row=row, column=column, padx=10, pady=(2, 10), sticky="n"
-        )
+        self.add_import_button = ctk.CTkButton(self.parent, height=30, text="Import All", command=self._import_e11_all)
+        self.add_import_button.grid(row=row, column=column, padx=10, pady=(2, 10), sticky="n")
 
-        self.add_v_button = ctk.CTkButton(
-            self.parent, height=30, text="Add Voice", command=self.open_edit_popup
-        )
-        self.add_v_button.grid(
-            row=row, column=column, padx=10, pady=(52, 10), sticky="n"
-        )
+        self.add_v_button = ctk.CTkButton(self.parent, height=30, text="Add Voice", command=self.open_edit_popup)
+        self.add_v_button.grid(row=row, column=column, padx=10, pady=(52, 10), sticky="n")
         self.del_v_button = ctk.CTkButton(
             self.parent,
             height=30,
@@ -357,31 +297,21 @@ class SettingsTab:
             hover_color="#772429",
             command=self._delete_voice,
         )
-        self.del_v_button.grid(
-            row=row, column=column, padx=10, pady=(92, 10), sticky="n"
-        )
+        self.del_v_button.grid(row=row, column=column, padx=10, pady=(92, 10), sticky="n")
         self.preview_v_button = ctk.CTkButton(
             self.parent,
             height=30,
             text="Preview Voice",
             command=self._preview_e11_voice,
         )
-        self.preview_v_button.grid(
-            row=row, column=column, padx=10, pady=(168, 10), sticky="n"
-        )
+        self.preview_v_button.grid(row=row, column=column, padx=10, pady=(168, 10), sticky="n")
 
         column = 1
 
         el_warn_val_label = ctk.CTkLabel(self.parent, text="Warning Limit")
-        el_warn_val_label.grid(
-            row=row, column=column, padx=(10, 10), pady=(62, 2), sticky="n"
-        )
+        el_warn_val_label.grid(row=row, column=column, padx=(10, 10), pady=(62, 2), sticky="n")
 
-        self.el_warning_var = ctk.StringVar(
-            value=self.config.get(
-                section="ELEVENLABS", option="usage_warning", fallback="500"
-            )
-        )
+        self.el_warning_var = ctk.StringVar(value=self.config.get(section="ELEVENLABS", option="usage_warning", fallback="500"))
         self.el_warning_var.trace_add("write", self._validate_el_warning_numeric)
         el_warning_entry = ctk.CTkEntry(
             self.parent,
@@ -416,9 +346,7 @@ class SettingsTab:
         if val != self.port_var.get():
             self.port_var.set(val)
 
-    def _validate_is_number(
-        self, value: str, val_if_empty: str = "", _min=0, _max=999999999
-    ):
+    def _validate_is_number(self, value: str, val_if_empty: str = "", _min=0, _max=999999999):
         if not val_if_empty:
             val_if_empty = value
         if value is None or value.strip() == "":
@@ -479,11 +407,7 @@ class SettingsTab:
                 self.e11_voices.deactivate("END")
                 self.e11_voices.delete("END")
 
-        for (
-            k
-        ) in (
-            client.get_voices().keys()  # pylint: disable=consider-iterating-dictionary
-        ):
+        for k in client.get_voices().keys():  # pylint: disable=consider-iterating-dictionary
             self.e11_voices.insert("END", option=k)
         self.del_v_button.configure(state="disabled")
         self.preview_v_button.configure(state="disabled")
@@ -510,15 +434,11 @@ class SettingsTab:
                 {"duration": 20000},
             ]
         )
-        self.label_bs_var.set(
-            f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay"
-        )
+        self.label_bs_var.set(f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay")
         # TODO Look into if we can restart task for webserver
 
     def _update_el_settings(self):
-        self.config.set(
-            section="ELEVENLABS", option="api_key", value=str(self.el_api_key_var.get())
-        )
+        self.config.set(section="ELEVENLABS", option="api_key", value=str(self.el_api_key_var.get()))
         self.config.set(
             section="ELEVENLABS",
             option="usage_warning",
@@ -529,17 +449,13 @@ class SettingsTab:
 
     def _update_bot_settings(self):
         self.chat_con_label.configure(text="Chat Connecting...", text_color="yellow")
-        self.config.set(
-            section="BOT", option="prefix", value=str(self.prefix_var.get())
-        )
+        self.config.set(section="BOT", option="prefix", value=str(self.prefix_var.get()))
         self.config.set(
             section="BOT",
             option="speak_command",
             value=self.speak_cmd_var.get().strip(),
         )
-        self.config.set(
-            section="BOT", option="join_command", value=self.join_cmd_var.get().strip()
-        )
+        self.config.set(section="BOT", option="join_command", value=self.join_cmd_var.get().strip())
         self.config.set(
             section="BOT",
             option="voice_command",
@@ -554,12 +470,8 @@ class SettingsTab:
         ui_settings_twitch_channel_update_event.trigger([True, self.twitch_utils, 5])
 
     def _update_elevenlabs_usage(self, count: int, limit: int):
-        self.e11labs_usage_label.configure(
-            text=f"{limit-count}/{limit} | {abs(((limit-count)*100)//limit)}% Remaining"
-        )
-        if limit - count < self.config.getint(
-            section="ELEVENLABS", option="usage_warning", fallback=500
-        ):
+        self.e11labs_usage_label.configure(text=f"{limit-count}/{limit} | {abs(((limit-count)*100)//limit)}% Remaining")
+        if limit - count < self.config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
             ui_request_floating_notif.trigger(
                 [
                     "ElevenLabs credit usage warning!",
@@ -595,20 +507,14 @@ class SettingsTab:
 
     def _update_elevenlabs_connection(self, status: bool):
         if status:
-            self.e11labs_con_label.configure(
-                text="ElevenLabs Connected", text_color="green"
-            )
+            self.e11labs_con_label.configure(text="ElevenLabs Connected", text_color="green")
             self._update_voice_list()
             self.add_v_button.configure(state="normal")
             self.add_import_button.configure(state="normal")
             if not self.startup:
-                ui_request_floating_notif.trigger(
-                    ["ElevenLabs connected!", NotifyType.INFO]
-                )
+                ui_request_floating_notif.trigger(["ElevenLabs connected!", NotifyType.INFO])
         else:
-            self.e11labs_con_label.configure(
-                text="ElevenLabs Disconnected", text_color="red"
-            )
+            self.e11labs_con_label.configure(text="ElevenLabs Disconnected", text_color="red")
             self.add_v_button.configure(state="disabled")
             self.add_import_button.configure(state="disabled")
             if self.e11_voices.size():
@@ -619,35 +525,20 @@ class SettingsTab:
             self.del_v_button.configure(state="disabled")
             self.preview_v_button.configure(state="disabled")
             self.parent.focus()
-            if (
-                self.config.get(section="ELEVENLABS", option="api_key")
-                and not self.startup
-            ):
-                ui_request_floating_notif.trigger(
-                    ["ElevenLabs disconnected!", NotifyType.WARNING]
-                )
+            if self.config.get(section="ELEVENLABS", option="api_key") and not self.startup:
+                ui_request_floating_notif.trigger(["ElevenLabs disconnected!", NotifyType.WARNING])
 
     def _update_bot_connection(self, status: bool):
         if status:
             self.chat_con_label.configure(text="Chat Connected", text_color="green")
             if not self.startup:
-                ui_request_floating_notif.trigger(
-                    ["Twitch Chatbot connected!", NotifyType.INFO]
-                )
-            self.twitch_channel.configure(
-                text=(
-                    "None"
-                    if not self.twitch_utils.channel
-                    else self.twitch_utils.channel.display_name
-                )
-            )
+                ui_request_floating_notif.trigger(["Twitch Chatbot connected!", NotifyType.INFO])
+            self.twitch_channel.configure(text=("None" if not self.twitch_utils.channel else self.twitch_utils.channel.display_name))
         else:
             self.chat_con_label.configure(text="Chat Disconnected", text_color="red")
             self.twitch_channel.configure(text="None")
             if not self.startup:
-                ui_request_floating_notif.trigger(
-                    ["Twitch Chatbot disconnected!", NotifyType.WARNING]
-                )
+                ui_request_floating_notif.trigger(["Twitch Chatbot disconnected!", NotifyType.WARNING])
             self.parent.focus()
 
     def _update_twitch_connect(self, status: bool, twitchutils=None):
@@ -670,9 +561,7 @@ class SettingsTab:
                     {"duration": 10000},
                 ]
             )
-            self.utd_label.configure(
-                text=f"Update Available [{new_version}]", text_color="orange"
-            )
+            self.utd_label.configure(text=f"Update Available [{new_version}]", text_color="orange")
             if open_page:
                 webbrowser.open(value, new=2)
 
@@ -703,9 +592,7 @@ class AddVoiceCard(ctk.CTkToplevel):
         label1.pack(pady=(20, 5))
 
         self.voice_id_var = ctk.StringVar()
-        self.voice_id_input = ctk.CTkEntry(
-            self, width=160, height=30, textvariable=self.voice_id_var
-        )
+        self.voice_id_input = ctk.CTkEntry(self, width=160, height=30, textvariable=self.voice_id_var)
         self.voice_id_input.pack(pady=(10, 10))
 
         self.label_warn = ctk.CTkLabel(self, text="", text_color="red")
@@ -715,9 +602,7 @@ class AddVoiceCard(ctk.CTkToplevel):
         self.save_button.pack(pady=10)
 
     def save_changes(self):
-        elvoice = self.tts.get_voice_object(
-            voice_id=self.voice_id_var.get(), run_sync_always=True
-        )
+        elvoice = self.tts.get_voice_object(voice_id=self.voice_id_var.get(), run_sync_always=True)
         if elvoice:
             self.close_popup()
         else:

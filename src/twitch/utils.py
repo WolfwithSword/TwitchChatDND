@@ -34,9 +34,7 @@ class TwitchUtils:
 
         ui_settings_twitch_auth_update_event.addListener(self.start)
 
-    async def _token_gen(
-        self, twitch: Twitch, target_scope: List[AuthScope]
-    ) -> (str, str):
+    async def _token_gen(self, twitch: Twitch, target_scope: List[AuthScope]) -> (str, str):
         code_flow = CodeFlow(twitch, target_scope)
         # Local callback didnt work, but CodeFlow does. Will open browser for it, then store locally due to StorageHelper
         code, url = await code_flow.get_code()
@@ -51,12 +49,8 @@ class TwitchUtils:
             AuthScope.CHAT_EDIT,
         ]  # TODO may need more as time goes on
         try:
-            self.twitch = await Twitch(
-                app_id=self.config.twitch_auth, authenticate_app=False
-            )
-            helper = UserAuthenticationStorageHelper(
-                self.twitch, scopes, auth_generator_func=self._token_gen
-            )
+            self.twitch = await Twitch(app_id=self.config.twitch_auth, authenticate_app=False)
+            helper = UserAuthenticationStorageHelper(self.twitch, scopes, auth_generator_func=self._token_gen)
             await helper.bind()
         except Exception as e:
             logger.error(e)

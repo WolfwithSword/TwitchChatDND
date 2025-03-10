@@ -30,9 +30,7 @@ class LocalTTS(TTS):
             db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=SOURCE_LOCAL))
             for v in engine.getProperty("voices"):
                 if v.id not in db_voice_ids:
-                    run_coroutine_sync(
-                        _upsert_voice(name=v.name, uid=v.id, source=SOURCE_LOCAL)
-                    )
+                    run_coroutine_sync(_upsert_voice(name=v.name, uid=v.id, source=SOURCE_LOCAL))
 
     @property
     def voices(self) -> dict:
@@ -46,12 +44,7 @@ class LocalTTS(TTS):
         friendly_names = list()
         engine = pyttsx4.init()
         for v in engine.getProperty("voices"):
-            n = (
-                v.name.split("-")[0]
-                .replace("Desktop", "")
-                .replace("Microsoft", "")
-                .strip()
-            )
+            n = v.name.split("-")[0].replace("Desktop", "").replace("Microsoft", "").strip()
             friendly_names.append(n)
         return friendly_names
 
@@ -60,12 +53,7 @@ class LocalTTS(TTS):
             return None
         engine = pyttsx4.init()
         for v in engine.getProperty("voices"):
-            n = (
-                v.name.split("-")[0]
-                .replace("Desktop", "")
-                .replace("Microsoft", "")
-                .strip()
-            )
+            n = v.name.split("-")[0].replace("Desktop", "").replace("Microsoft", "").strip()
             if n.lower() == name.lower().strip():
                 return v.id
 
@@ -74,9 +62,7 @@ class LocalTTS(TTS):
         return "Local Voices: " + ", ".join(voices)
 
     def audio_stream_generator(self, text="Hello World!", voice_id: str = None):
-        engine = (
-            pyttsx4.init()
-        )  # We are using the fork for x4 as it works with outputting to bytesIO
+        engine = pyttsx4.init()  # We are using the fork for x4 as it works with outputting to bytesIO
         output = io.BytesIO()
 
         if voice_id and voice_id in self.get_voices().values():
@@ -107,9 +93,7 @@ class LocalTTS(TTS):
         chunk = output.read(chunk_size)
 
         while chunk:
-            duration = len(chunk) / (
-                self.sample_rate * self.num_channels * (self.bits_per_sample // 8)
-            )
+            duration = len(chunk) / (self.sample_rate * self.num_channels * (self.bits_per_sample // 8))
             await asyncio.sleep(duration)
             yield (header + chunk, duration)
             chunk = output.read(chunk_size)

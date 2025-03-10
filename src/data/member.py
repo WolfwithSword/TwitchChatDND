@@ -17,12 +17,8 @@ class Member(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     pfp_url: Mapped[str] = mapped_column(String, default="")
-    num_sessions: Mapped[int] = mapped_column(
-        Integer, default=0
-    )  # increment on end/complete session
-    preferred_tts_uid: Mapped[str] = mapped_column(
-        ForeignKey("voices.uid"), nullable=True
-    )
+    num_sessions: Mapped[int] = mapped_column(Integer, default=0)  # increment on end/complete session
+    preferred_tts_uid: Mapped[str] = mapped_column(ForeignKey("voices.uid"), nullable=True)
     preferred_tts: Mapped[Voice] = relationship("Voice", lazy="subquery")
 
     data: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -105,13 +101,9 @@ async def remove_tts(voice_id: str | list):
         async with session.begin():
             result = None
             if isinstance(voice_id, str):
-                result = await session.execute(
-                    select(Member).where(Member.preferred_tts_uid == voice_id)
-                )
+                result = await session.execute(select(Member).where(Member.preferred_tts_uid == voice_id))
             elif isinstance(voice_id, list):
-                result = await session.execute(
-                    select(Member).where(Member.preferred_tts_uid.in_(voice_id))
-                )
+                result = await session.execute(select(Member).where(Member.preferred_tts_uid.in_(voice_id)))
 
             if not result:
                 return
@@ -141,9 +133,7 @@ async def fetch_paginated_members(
         query = select(Member).order_by(asc(Member.name))
 
         if exclude_names:
-            query = query.where(
-                Member.name.notin_([name.lower()] for name in exclude_names)
-            )
+            query = query.where(Member.name.notin_([name.lower()] for name in exclude_names))
 
         if name_filter:
             query = query.where(Member.name.like(f"%{name_filter.lower()}%"))

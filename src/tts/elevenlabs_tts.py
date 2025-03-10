@@ -83,12 +83,8 @@ class ElevenLabsTTS(TTS):
                 self.client = AsyncElevenLabs(api_key=key)
                 if self.full_instance:
                     # Remove all voices from system if they are not available on the account anymore
-                    available_voices = [
-                        v.voice_id for v in test_client.voices.get_all().voices
-                    ]
-                    db_voice_ids = run_coroutine_sync(
-                        get_all_voice_ids(source=SOURCE_11L)
-                    )
+                    available_voices = [v.voice_id for v in test_client.voices.get_all().voices]
+                    db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=SOURCE_11L))
                     unavailable_voices = []
                     for uid in db_voice_ids:
                         if uid not in available_voices:
@@ -96,9 +92,7 @@ class ElevenLabsTTS(TTS):
 
                     if unavailable_voices:
                         run_coroutine_sync(remove_tts(voice_id=unavailable_voices))
-                        run_coroutine_sync(
-                            delete_voice(uid=unavailable_voices, source=SOURCE_11L)
-                        )
+                        run_coroutine_sync(delete_voice(uid=unavailable_voices, source=SOURCE_11L))
                     on_elevenlabs_connect.trigger([True])
 
             except Exception as e:
@@ -112,9 +106,7 @@ class ElevenLabsTTS(TTS):
 
         async def fetch_stream(client, text, voice_id, model, _format):
             output = io.BytesIO()
-            async for chunk in client.text_to_speech.convert_as_stream(
-                text=text, voice_id=voice_id, model_id=model, output_format=_format
-            ):
+            async for chunk in client.text_to_speech.convert_as_stream(text=text, voice_id=voice_id, model_id=model, output_format=_format):
                 output.write(chunk)
             output.seek(0)
             return output
@@ -137,9 +129,7 @@ class ElevenLabsTTS(TTS):
         chunk = output.read(chunk_size)
 
         while chunk:
-            duration = len(chunk) / (
-                self.sample_rate * self.num_channels * (self.bits_per_sample // 8)
-            )
+            duration = len(chunk) / (self.sample_rate * self.num_channels * (self.bits_per_sample // 8))
             await asyncio.sleep(duration)
             yield (header + chunk, duration)
             chunk = output.read(chunk_size)
@@ -171,26 +161,18 @@ class ElevenLabsTTS(TTS):
 
             if unavailable_voices:
                 run_coroutine_sync(remove_tts(voice_id=unavailable_voices))
-                run_coroutine_sync(
-                    delete_voice(uid=unavailable_voices, source=SOURCE_11L)
-                )
+                run_coroutine_sync(delete_voice(uid=unavailable_voices, source=SOURCE_11L))
 
             for uid in available_voices:
                 if uid not in db_voice_ids:
-                    r = self.get_voice_object(
-                        voice_id=uid, run_sync_always=run_sync_always
-                    )
+                    r = self.get_voice_object(voice_id=uid, run_sync_always=run_sync_always)
                     if r:
                         did_import = True
         return did_import
 
-    def get_voice_object(
-        self, voice_id: str = "", run_sync_always: bool = False
-    ) -> ELVoice | None:
+    def get_voice_object(self, voice_id: str = "", run_sync_always: bool = False) -> ELVoice | None:
         # Voice by id, will attempt to find it and cache it
-        if not voice_id or not self.config.get(
-            section="ELEVENLABS", option="api_key", fallback=None
-        ):
+        if not voice_id or not self.config.get(section="ELEVENLABS", option="api_key", fallback=None):
             return None
 
         key = f"11l.voice.{voice_id}"
@@ -201,17 +183,13 @@ class ElevenLabsTTS(TTS):
                 logger.debug(f"Fetched cached preview audio for `{voice_id}`")
 
         if not v:
-            client = ElevenLabs(
-                api_key=self.config.get(section="ELEVENLABS", option="api_key")
-            )
+            client = ElevenLabs(api_key=self.config.get(section="ELEVENLABS", option="api_key"))
             v = None
             try:
                 x = client.voices.get_all().voices
                 y = [o.voice_id for o in x]
                 if voice_id not in y:
-                    logger.warning(
-                        f"Elevenlabs Voice Id '{voice_id}' is not added to your account. Cannot fetch"
-                    )
+                    logger.warning(f"Elevenlabs Voice Id '{voice_id}' is not added to your account. Cannot fetch")
                     return None
                 v = client.voices.get(voice_id)
             except Exception as e:
@@ -229,17 +207,11 @@ class ElevenLabsTTS(TTS):
 
         if v:
             if run_sync_always:
-                run_coroutine_sync(
-                    _upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L)
-                )
+                run_coroutine_sync(_upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L))
             elif asyncio.get_event_loop():
-                asyncio.create_task(
-                    _upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L)
-                )
+                asyncio.create_task(_upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L))
             else:
-                run_coroutine_sync(
-                    _upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L)
-                )
+                run_coroutine_sync(_upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L))
         return v
 
     def list_voices(self) -> list:
@@ -253,7 +225,7 @@ class ElevenLabsTTS(TTS):
     @staticmethod
     def voices_messages() -> str:
         msg = (
-            "Search for AI voices here and copy their voice-id: https://elevenlabs.io/app/voice-library"
+            "Search for AI voices here and copy their voice-id: https://elevenlabs.io/app/voice-library "
             "- the streamer needs the voice-id added to their library for it to work!"
         )
         return msg
@@ -262,9 +234,7 @@ class ElevenLabsTTS(TTS):
         return ElevenLabsTTS.voices_messages()
 
     def test_speak(self, text: str = "Hello there. How are you?", voice_id: str = None):
-        if not voice_id or not self.config.get(
-            section="ELEVENLABS", option="api_key", fallback=None
-        ):
+        if not voice_id or not self.config.get(section="ELEVENLABS", option="api_key", fallback=None):
             return
         # Could use `preview_url` from Voice object, but it is different for each voice,
         # likely best to spend a few credits for consistency and cache it for a long time
@@ -279,9 +249,7 @@ class ElevenLabsTTS(TTS):
                 logger.debug(f"Fetched cached preview audio for `{voice_id}`")
         if not audio:
             try:
-                client = ElevenLabs(
-                    api_key=self.config.get(section="ELEVENLABS", option="api_key")
-                )
+                client = ElevenLabs(api_key=self.config.get(section="ELEVENLABS", option="api_key"))
                 client.user.get()  # Trigger bad api key
             except Exception:
                 on_elevenlabs_connect.trigger([False])  # needed?
