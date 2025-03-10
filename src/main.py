@@ -2,49 +2,44 @@ import os
 import sys
 
 import asyncio
-import argparse
 from queue import Queue
 
 import static_ffmpeg
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Run the application.")
-    parser.add_argument('--debug', action='store_true', help="Enable debug logging level.")
-    return parser.parse_args()
-
-cwd = os.getcwd()
-args = parse_args()
-os.environ['TCDND_DEBUG_MODE'] = '1' if args.debug else '0'
-
-_tasks = Queue()
-
-if getattr(sys, 'frozen', False):
-    base_path = sys._MEIPASS
-    src_path = os.path.join(base_path, 'src')
-    sys.path.insert(0, src_path)
-
-import helpers.event as _event_module
-setattr(sys.modules[_event_module.__name__], '_TASK_QUEUE', _tasks)
+from initialize import args
 
 from twitch.utils import TwitchUtils
 from twitch.chat import ChatController
-from twitchAPI.type import TwitchAuthorizationException
 
+import helpers.event as _event_module
 from helpers import TCDNDConfig as Config
-from helpers.utils import get_resource_path, check_for_updates
+from helpers.utils import check_for_updates
 from ui.app import DesktopApp
 from server.app import ServerApp
 
-from _version import __version__
-
 from chatdnd import SessionManager
-from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_settings_twitch_channel_update_event, ui_on_startup_complete, ui_fetch_update_check_event
+from chatdnd.events.ui_events import (
+    ui_settings_twitch_auth_update_event,
+    ui_on_startup_complete,
+    ui_fetch_update_check_event,
+)
 
 from custom_logger.logger import logger
 from db import initialize_database
 
+assert args is not None
+cwd = os.getcwd()
+
+_tasks = Queue()
+
+setattr(sys.modules[_event_module.__name__], "_TASK_QUEUE", _tasks)
+
+if getattr(sys, "frozen", False):
+    base_path = sys._MEIPASS
+    src_path = os.path.join(base_path, "src")
+    sys.path.insert(0, src_path)
 
 logger.info("Setting up ffmpeg...")
 static_ffmpeg.add_paths()
@@ -53,11 +48,11 @@ logger.info("Done setting up ffmpeg")
 
 def run_migrations():
     logger.info("Running DB Migrations...")
-    if getattr(sys, 'frozen', False):
-        alembic_cfg = AlembicConfig(os.path.join(cwd, 'alembic.ini'))
-        script_location = os.path.join(cwd, 'migrations')
+    if getattr(sys, "frozen", False):
+        alembic_cfg = AlembicConfig(os.path.join(cwd, "alembic.ini"))
+        script_location = os.path.join(cwd, "migrations")
     else:
-        alembic_cfg = AlembicConfig(os.path.join(cwd, 'alembic.ini'))
+        alembic_cfg = AlembicConfig(os.path.join(cwd, "alembic.ini"))
         script_location = os.path.join(os.path.dirname(__file__), "..", "migrations")
     logger.info(f"DB Migrations config: {alembic_cfg.config_file_name}")
     logger.info(f"DB Migrations folder: {script_location}")
@@ -66,18 +61,21 @@ def run_migrations():
     alembic_command.upgrade(alembic_cfg, "head")
     logger.info("Finished DB Migrations")
 
+
 async def run_db_init():
     run_migrations()
     await initialize_database()
-asyncio.run(run_db_init())#"DB-Setup"
 
-config_path = os.path.join(cwd, 'config.ini')
-cache_dir = os.path.join(cwd, '.tcdnd-cache/')
+
+asyncio.run(run_db_init())  # "DB-Setup"
+
+config_path = os.path.join(cwd, "config.ini")
+cache_dir = os.path.join(cwd, ".tcdnd-cache/")
 
 config = Config()
 config.setup(config_path)
 
-if not config.has_option(section="CACHE",option="directory"):
+if not config.has_option(section="CACHE", option="directory"):
     config.set(section="CACHE", option="directory", value=cache_dir)
 
 twitch_utils = TwitchUtils(config, cache_dir)
@@ -88,6 +86,7 @@ chat: ChatController = ChatController(session_mgr, config)
 server = ServerApp(config)
 
 APP_RUNNING = True
+
 
 async def run_twitch():
     async def try_setup():
@@ -154,11 +153,13 @@ async def run_twitch_bot():
 
 logger.info("Starting")
 
+
 async def run_server():
     await server.run_task(host="0.0.0.0")
 
 
 async def run_ui():
+    global APP_RUNNING
     app = DesktopApp(session_mgr, chat, config, twitch_utils)
     while app.running:
         await asyncio.sleep(0.05)
@@ -167,23 +168,24 @@ async def run_ui():
     await asyncio.sleep(2)
     sys.exit(0)
 
+
 async def run_queued_tasks():
     while APP_RUNNING:
         try:
             callback = None
-            args = None
+            _args = None
             if _tasks.empty():
                 await asyncio.sleep(0.5)
             else:
                 items = _tasks.get(False)
                 callback = items[0]
                 if len(items) > 1:
-                    args = items[1:]
-                    callback(*args)
+                    _args = items[1:]
+                    callback(*_args)
                 else:
                     callback()
         except Exception as e:
-            logger.error(f"Error in queued task: {callback} ({args}) - {e}")
+            logger.error(f"Error in queued task: {callback} ({_args}) - {e}")
 
 
 async def startup_completion():
@@ -200,7 +202,7 @@ async def run_all():
         asyncio.create_task(run_ui(), name="UI"),
         asyncio.create_task(run_twitch_bot(), name="Twitch-Bot"),
         asyncio.create_task(run_queued_tasks(), name="Task-Queue"),
-        asyncio.create_task(startup_completion(), name="Finish-Startup")
+        asyncio.create_task(startup_completion(), name="Finish-Startup"),
     ]
 
     try:
@@ -213,6 +215,7 @@ async def run_all():
                 await task
             except asyncio.CancelledError:
                 logger.warning(f"{task.get_name()} task was cancelled")
+
 
 if __name__ == "__main__":
     asyncio.run(run_all())

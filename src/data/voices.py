@@ -9,6 +9,7 @@ from db import async_session
 from custom_logger.logger import logger
 from helpers.constants import SOURCES, SOURCE_11L, SOURCE_LOCAL
 
+
 class Voice(Base):
     __tablename__ = "voices"
 
@@ -21,7 +22,7 @@ class Voice(Base):
     __table_args__ = (
         CheckConstraint(
             f"source IN ({', '.join(repr(value) for value in SOURCES)})",
-            name="chk_source_valid_val"
+            name="chk_source_valid_val",
         ),
     )
 
@@ -33,12 +34,14 @@ class Voice(Base):
         self.source: str = source
 
     def __eq__(self, other):
-        return self.name == other.name and self.uid == other.uid and self.source == other.source
-
+        return (
+            self.name == other.name
+            and self.uid == other.uid
+            and self.source == other.source
+        )
 
     def __hash__(self):
         return hash(f"{self.name}{self.uid}{self.source}")
-
 
     def __repr__(self):
         return f"Voice(name='{self.name}', uid='{self.uid}', source='{self.source}')"
@@ -55,9 +58,12 @@ async def _upsert_voice(name: str, uid: str, source: str) -> Voice | None:
         return None
     async with async_session() as session:
         async with session.begin():
-            query = select(Voice).where(Voice.name == name).where(
-                                        Voice.uid == uid).where(
-                                        Voice.source == source)
+            query = (
+                select(Voice)
+                .where(Voice.name == name)
+                .where(Voice.uid == uid)
+                .where(Voice.source == source)
+            )
             result = await session.execute(query)
             voice = result.scalars().first()
 
@@ -100,7 +106,9 @@ async def delete_voice(uid: str | list = None, source: str = None) -> bool:
         return False
 
 
-async def fetch_voice(name: str = None, uid: str = None, source: str = None) -> Voice | None:
+async def fetch_voice(
+    name: str = None, uid: str = None, source: str = None
+) -> Voice | None:
     if not any([name, uid]):
         return None
     async with async_session() as session:
@@ -123,16 +131,19 @@ async def fetch_voices(source: str = None, limit: int = 100) -> list[Voice]:
             query = query.where(Voice.source == source)
         query = query.limit(limit)
         result = await session.execute(query)
-        res =  result.scalars().all()
-        if not res and source == 'elevenlabs':
+        res = result.scalars().all()
+        if not res and source == "elevenlabs":
             logger.info("Adding default ElevenLabs voice 'Will'")
-            v = await _upsert_voice(name="Will", uid="bIHbv24MWmeRgasZH58o", source=SOURCE_11L)
+            v = await _upsert_voice(
+                name="Will", uid="bIHbv24MWmeRgasZH58o", source=SOURCE_11L
+            )
             return [v]
         return res
 
 
-async def fetch_paginated_voices(page: int, per_page: int=20,
-                                 name_filter: str = None, filter_source: str = None) -> list[Voice]:
+async def fetch_paginated_voices(
+    page: int, per_page: int = 20, name_filter: str = None, filter_source: str = None
+) -> list[Voice]:
     if not exclude_names:
         exclude_names = []
 
@@ -145,7 +156,7 @@ async def fetch_paginated_voices(page: int, per_page: int=20,
         if filter_source:
             query = query.where(Voice.source == filter_source)
 
-        offset = (page -1) * per_page
+        offset = (page - 1) * per_page
         query = query.offset(offset).limit(per_page)
 
         result = await session.execute(query)

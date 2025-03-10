@@ -2,7 +2,10 @@ import configparser
 import base64
 
 # ID is fine to ship
-_client_id = base64.b64decode("dXp4NXFiOXNzZXl0dGtvZXF5cXdydmthOGdic3Br").decode('utf-8')
+_client_id = base64.b64decode("dXp4NXFiOXNzZXl0dGtvZXF5cXdydmthOGdic3Br").decode(
+    "utf-8"
+)
+
 
 class TCDNDConfig(configparser.ConfigParser):
 
@@ -47,13 +50,19 @@ class TCDNDConfig(configparser.ConfigParser):
             self.add_section("CACHE")
         if not self.has_option(section="CACHE", option="enabled"):
             needs_init = True
-            self.set(section="CACHE", option="enabled", value='true')
+            self.set(section="CACHE", option="enabled", value="true")
         if not self.has_option(section="CACHE", option="cache_expiry"):
             needs_init = True
-            self.set(section="CACHE", option="cache_expiry", value=str(7*24*60*60))
+            self.set(
+                section="CACHE", option="cache_expiry", value=str(7 * 24 * 60 * 60)
+            )
         if not self.has_option(section="CACHE", option="tts_cache_expiry"):
             needs_init = True
-            self.set(section="CACHE", option="tts_cache_expiry", value=str(7*24*60*60*4*3))
+            self.set(
+                section="CACHE",
+                option="tts_cache_expiry",
+                value=str(7 * 24 * 60 * 60 * 4 * 3),
+            )
 
         if not self.has_section("DND"):
             needs_init = True
@@ -67,10 +76,10 @@ class TCDNDConfig(configparser.ConfigParser):
             self.add_section("ELEVENLABS")
         if not self.has_option(section="ELEVENLABS", option="api_key"):
             needs_init = True
-            self.set(section="ELEVENLABS", option="api_key", value='')
+            self.set(section="ELEVENLABS", option="api_key", value="")
         if not self.has_option(section="ELEVENLABS", option="usage_warning"):
             needs_init = True
-            self.set(section="ELEVENLABS", option="usage_warning", value='500')
+            self.set(section="ELEVENLABS", option="usage_warning", value="500")
 
         if needs_init:
             self.write_updates()
@@ -81,9 +90,9 @@ class TCDNDConfig(configparser.ConfigParser):
 
     @property
     def cache_enabled(self) -> bool:
-        return self.getboolean(section='CACHE', option='enabled', fallback=False)
+        return self.getboolean(section="CACHE", option="enabled", fallback=False)
 
     def write_updates(self):
-        with open(self.path, 'w') as configfile:
+        with open(self.path, "w", encoding="utf-8") as configfile:
             self.write(configfile)
         self.read(self.path)

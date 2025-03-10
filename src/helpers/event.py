@@ -6,33 +6,31 @@ from custom_logger.logger import logger
 # Main sets this at startup. It's cursed, but it works.
 _TASK_QUEUE = None
 
+
 class Event:
     def __init__(self):
         self.__listeners = []
         self._main_loop = asyncio.get_event_loop()
-
 
     @property
     def on(self):
         def wrapper(func):
             self.addListener(func)
             return func
+
         return wrapper
 
-
-    def addListener(self, func):
+    def addListener(self, func):  # pylint: disable=invalid-name
         if func in self.__listeners:
             return
         self.__listeners.append(func)
 
-
-    def removeListener(self, func):
+    def removeListener(self, func):  # pylint: disable=invalid-name
         if func not in self.__listeners:
             return
         self.__listeners.remove(func)
 
-
-    def trigger(self, args = None):
+    def trigger(self, args=None):
         if args is None:
             args = []
         if type(args) not in [list, tuple, dict]:
@@ -43,7 +41,7 @@ class Event:
                     try:
                         loop = asyncio.get_running_loop()
                         loop.create_task(self._run_async_func(func, *args))
-                    except Exception as e:
+                    except Exception:
                         loop = asyncio.new_event_loop()
                         loop.run_until_complete(self._run_async_func(func, *args))
                 else:
@@ -53,10 +51,9 @@ class Event:
                     _TASK_QUEUE.put((func, *args))
                     continue
                 else:
-                    raise
+                    raise e from e
             except Exception as e:
-                raise
-
+                raise e from e
 
     async def _run_async_func(self, func, *args):
         try:

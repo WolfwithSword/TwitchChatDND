@@ -1,36 +1,38 @@
 import customtkinter as ctk
-from ui.widgets import CTkScrollableTabView
-from custom_logger.logger import logger
 
 from _version import __version__ as app_version
-
+from chatdnd import SessionManager
+from chatdnd.events.ui_events import ui_request_floating_notif
+from custom_logger.logger import logger
+from helpers import TCDNDConfig as Config
+from helpers.utils import get_resource_path
+from twitch.chat import ChatController
+from twitch.utils import TwitchUtils
 from ui.tabs.home import HomeTab
 from ui.tabs.settings import SettingsTab
 from ui.tabs.users import UsersTab
+from ui.widgets import CTkScrollableTabView
 from ui.widgets.CTkFloatingNotifications import NotificationManager, NotifyType
 
-from chatdnd import SessionManager
-from twitch.chat import ChatController
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
 
-ctk.set_appearance_mode('dark')
-ctk.set_default_color_theme('dark-blue')
-
-from helpers import TCDNDConfig as Config
-from twitch.utils import TwitchUtils
-
-from helpers.utils import get_resource_path
-
-from chatdnd.events.ui_events import ui_request_floating_notif
 
 class DesktopApp(ctk.CTk):
 
-    def __init__(self, session_mgr: SessionManager, chat_ctrl: ChatController, config: Config, twitch_utils: TwitchUtils):
+    def __init__(
+        self,
+        session_mgr: SessionManager,
+        chat_ctrl: ChatController,
+        config: Config,
+        twitch_utils: TwitchUtils,
+    ):
         super().__init__()
         self.running = True
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.resizable(False, False)
-        self.config:Config = config
+        self.config: Config = config
         self.twitch_utils = twitch_utils
         self.session_mgr = session_mgr
         self.chat_ctrl = chat_ctrl
@@ -38,21 +40,20 @@ class DesktopApp(ctk.CTk):
             version_for_title = app_version[1:]
         else:
             version_for_title = app_version
-        self.title(f'Twitch Chat DND Manager - v.{version_for_title}')
+        self.title(f"Twitch Chat DND Manager - v.{version_for_title}")
 
-        icon_path = get_resource_path('../../images/logo.ico', from_resources = True)
+        icon_path = get_resource_path("../../images/logo.ico", from_resources=True)
         self.iconbitmap(icon_path)
 
         self.geometry("1200x750")
 
         self.tabview = CTkScrollableTabView(self, anchor="w")
-        self.tabview.pack(fill='both', expand=True)
+        self.tabview.pack(fill="both", expand=True)
 
         self.notification_manager = NotificationManager(self)
         ui_request_floating_notif.addListener(self._show_floating_notif)
 
         self._setup_tabs()
-
 
     def _setup_tabs(self):
 
@@ -64,19 +65,19 @@ class DesktopApp(ctk.CTk):
         home = HomeTab(home_tab, self.chat_ctrl)
         users = UsersTab(users_tab, self.chat_ctrl)
         settings = SettingsTab(settings_tab, self.config, self.twitch_utils)
-
+        assert all([home, users, settings])
 
     def button_callback(self):
         logger.info("Test")
-
 
     def on_close(self):
         logger.info("Shutting down...")
         self.running = False
         self.destroy()
 
-
-    def _show_floating_notif(self, text: str, _type: NotifyType, data: dict = {}):
+    def _show_floating_notif(
+        self, text: str, _type: NotifyType, data: dict = {}
+    ):  # pylint: disable=dangerous-default-value
         if text and _type:
             if data is not None and isinstance(data, dict):
                 data.setdefault("bg_color", "#202020")

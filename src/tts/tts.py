@@ -1,17 +1,18 @@
 import struct
 from helpers import TCDNDConfig as Config
 
+
 def create_wav_header(sample_rate, bits_per_sample, num_channels, data_size):
     # WAV File header
     byte_rate = sample_rate * num_channels * bits_per_sample // 8
     block_align = num_channels * bits_per_sample // 8
 
     header = struct.pack(
-        '<4sI4s4sIHHIIHH4sI',
-        b'RIFF',  # ChunkID
+        "<4sI4s4sIHHIIHH4sI",
+        b"RIFF",  # ChunkID
         36 + data_size,  # ChunkSize
-        b'WAVE',  # Format
-        b'fmt ',  # Subchunk1ID
+        b"WAVE",  # Format
+        b"fmt ",  # Subchunk1ID
         16,  # Subchunk1Size
         1,  # AudioFormat (PCM)
         num_channels,  # NumChannels
@@ -19,13 +20,13 @@ def create_wav_header(sample_rate, bits_per_sample, num_channels, data_size):
         byte_rate,  # ByteRate
         block_align,  # BlockAlign
         bits_per_sample,  # BitsPerSample
-        b'data',  # Subchunk2ID
+        b"data",  # Subchunk2ID
         data_size,  # Subchunk2Size
     )
     return header
 
 
-class TTS():
+class TTS:
 
     voices: dict = dict()
 

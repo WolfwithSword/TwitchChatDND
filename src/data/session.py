@@ -3,12 +3,14 @@ from enum import Enum, auto
 
 from data.member import Member
 
+
 class SessionState(Enum):
     NONE = auto()
     OPEN = auto()
     STARTED = auto()
 
-class Session():
+
+class Session:
 
     def __init__(self):
         self.queue: Set[Member] = set()
