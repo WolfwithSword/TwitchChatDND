@@ -93,18 +93,40 @@ class ChatController:
             section="BOT", option="voice_command"
         )
 
+        self.command_list["help"] = self.config.get(
+            section="BOT", option="help_command"
+        )
+
+        self.chat.register_command(
+            self.command_list["help"],
+            self._send_help_cmd,
+            command_middleware=[
+                ChannelCommandCooldown(
+                    self.config.get_command_cooldown("help", "global")
+                )
+            ],
+        )
+
         self.chat.register_command(
             self.command_list["voices"],
             self._get_voices,
             command_middleware=[
-                ChannelCommandCooldown(10),
-                ChannelUserCommandCooldown(15),
+                ChannelCommandCooldown(
+                    self.config.get_command_cooldown("voices", "global")
+                ),
+                ChannelUserCommandCooldown(
+                    self.config.get_command_cooldown("voices", "user")
+                ),
             ],
         )
         self.chat.register_command(
             self.command_list["voice"],
             self._set_voice,
-            command_middleware=[ChannelUserCommandCooldown(10)],
+            command_middleware=[
+                ChannelUserCommandCooldown(
+                    self.config.get_command_cooldown("voice", "user")
+                )
+            ],
         )
 
         ui_settings_bot_settings_update_event.addListener(self.update_bot_settings)
@@ -123,7 +145,11 @@ class ChatController:
             self.chat.register_command(
                 self.command_list["join"],
                 self._add_user_to_queue,
-                command_middleware=[ChannelUserCommandCooldown(30)],
+                command_middleware=[
+                    ChannelUserCommandCooldown(
+                        self.config.get_command_cooldown("join", "user")
+                    )
+                ],
             )
         if self.chat.unregister_command(self.command_list["say"]):
             self.command_list["say"] = self.config.get(
@@ -136,8 +162,12 @@ class ChatController:
                     UserRestriction(
                         allowed_users=[x.name for x in self.session_mgr.session.party]
                     ),
-                    ChannelCommandCooldown(1),  # TODO Config cooldown times
-                    ChannelUserCommandCooldown(10),
+                    ChannelCommandCooldown(
+                        self.config.get_command_cooldown("speak", "global")
+                    ),
+                    ChannelUserCommandCooldown(
+                        self.config.get_command_cooldown("speak", "user")
+                    ),
                 ],
             )
         if self.chat.unregister_command(self.command_list["voices"]):
@@ -148,8 +178,12 @@ class ChatController:
                 self.command_list["voices"],
                 self._get_voices,
                 command_middleware=[
-                    ChannelCommandCooldown(10),  # TODO Config cooldown times
-                    ChannelUserCommandCooldown(15),
+                    ChannelCommandCooldown(
+                        self.config.get_command_cooldown("voices", "global")
+                    ),
+                    ChannelUserCommandCooldown(
+                        self.config.get_command_cooldown("voices", "user")
+                    ),
                 ],
             )
         if self.chat.unregister_command(self.command_list["voice"]):
@@ -159,7 +193,24 @@ class ChatController:
             self.chat.register_command(
                 self.command_list["voice"],
                 self._set_voice,
-                command_middleware=[ChannelUserCommandCooldown(10)],
+                command_middleware=[
+                    ChannelUserCommandCooldown(
+                        self.config.get_command_cooldown("voice", "user")
+                    )
+                ],
+            )
+        if self.chat.unregister_command(self.command_list["help"]):
+            self.command_list["help"] = self.config.get(
+                section="BOT", option="help_command"
+            )
+            self.chat.register_command(
+                self.command_list["help"],
+                self._send_help_cmd,
+                command_middleware=[
+                    ChannelCommandCooldown(
+                        self.config.get_command_cooldown("help", "global")
+                    )
+                ],
             )
         # self.end_session()
 
@@ -194,7 +245,11 @@ class ChatController:
         self.chat.register_command(
             self.command_list["join"],
             self._add_user_to_queue,
-            command_middleware=[ChannelUserCommandCooldown(30)],
+            command_middleware=[
+                ChannelUserCommandCooldown(
+                    self.config.get_command_cooldown("join", "user")
+                )
+            ],
         )
         self.send_message(
             f"Session started! Type {self.chat._prefix}{self.command_list['join']} to queue for the adventuring party"
@@ -212,11 +267,15 @@ class ChatController:
                     UserRestriction(
                         allowed_users=[x.name for x in self.session_mgr.session.party]
                     ),
-                    ChannelCommandCooldown(10),
-                    ChannelUserCommandCooldown(10),
+                    ChannelCommandCooldown(
+                        self.config.get_command_cooldown("speak", "global")
+                    ),
+                    ChannelUserCommandCooldown(
+                        self.config.get_command_cooldown("speak", "user")
+                    ),
                 ],
-            )  # TODO config cooldown times
-            # TODO Send link to commands list (from git)
+            )
+
             self.send_message(f"Say welcome to our party members: {", ".join(party)}")
             self.send_message(
                 f"Party members, type {self.chat._prefix}{self.command_list['say']} <msg> to have it spoken via TTS"
@@ -261,6 +320,11 @@ class ChatController:
             # Event trigger *does* work here
             member = await fetch_member(cmd.user.name.lower())
             chat_say_command.trigger([member, cmd.parameter])
+
+    async def _send_help_cmd(self, cmd: ChatCommand):
+        await cmd.reply(
+            "Commands: https://github.com/WolfwithSword/TwitchChatDND/wiki/Commands"
+        )
 
     async def _get_voices(self, cmd: ChatCommand):
         param = cmd.parameter
