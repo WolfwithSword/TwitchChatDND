@@ -1,7 +1,6 @@
 import os
 import sys
 import asyncio
-import argparse
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Coroutine, TypeVar
@@ -10,14 +9,6 @@ from packaging.version import Version
 from _version import __version__ as current_version
 
 T = TypeVar("T")
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Run the application.")
-    parser.add_argument(
-        "--debug", action="store_true", help="Enable debug logging level."
-    )
-    return parser.parse_args()
 
 
 def get_resource_path(relative_path, from_resources: bool = False):

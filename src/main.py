@@ -8,16 +8,16 @@ import static_ffmpeg
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 
+from initialize import args
 
 from twitch.utils import TwitchUtils
 from twitch.chat import ChatController
 
 import helpers.event as _event_module
 from helpers import TCDNDConfig as Config
-from helpers.utils import check_for_updates, parse_args
+from helpers.utils import check_for_updates
 from ui.app import DesktopApp
 from server.app import ServerApp
-
 
 from chatdnd import SessionManager
 from chatdnd.events.ui_events import (
@@ -29,6 +29,7 @@ from chatdnd.events.ui_events import (
 from custom_logger.logger import logger
 from db import initialize_database
 
+assert args is not None
 cwd = os.getcwd()
 
 _tasks = Queue()
@@ -217,7 +218,4 @@ async def run_all():
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    os.environ["TCDND_DEBUG_MODE"] = "1" if args.debug else "0"
-
     asyncio.run(run_all())
