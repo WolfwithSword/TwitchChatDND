@@ -1,13 +1,14 @@
 import webbrowser
 import re
 
+from PIL import Image
 from win11toast import notify
 
 import customtkinter as ctk
 from CTkListbox import *
 
 from helpers import TCDNDConfig as Config
-from helpers.utils import run_coroutine_sync, check_for_updates
+from helpers.utils import run_coroutine_sync, check_for_updates, get_resource_path
 from helpers.constants import SOURCE_11L
 from twitch.utils import TwitchUtils
 from tts import ElevenLabsTTS
@@ -63,6 +64,23 @@ class SettingsTab:
             command=self._check_for_updates,
         )
         check_update_button.grid(row=row, column=column, padx=10, pady=(30, 2))
+
+        img = Image.open(
+            get_resource_path("../../images/logo.png", from_resources=True)
+        )
+        resize_method = Image.Resampling.LANCZOS
+        img = img.resize((256, int(128*1.5)), resize_method)
+        logo_image = ctk.CTkImage(img, img, (256, int(128*1.5)))
+        logo_label = ctk.CTkLabel(self.parent, image=logo_image, text="")
+        logo_label.grid(row=0, column=5, sticky="ne", rowspan=2, columnspan=3)
+        logo_label.bind(
+            "<Button-1>",
+            lambda e: webbrowser.open(
+                "https://github.com/WolfwithSword/TwitchChatDND", new=0, autoraise=True
+            ),
+        )
+        logo_label.bind("<Enter>", lambda e: logo_label.configure(cursor="hand2"))
+        logo_label.bind("<Leave>", lambda e: logo_label.configure(cursor=""))
         ###########################
 
         row += 1
