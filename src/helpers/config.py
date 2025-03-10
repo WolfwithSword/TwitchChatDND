@@ -37,6 +37,31 @@ class TCDNDConfig(configparser.ConfigParser):
         if not self.get(section="BOT", option="voice_command", fallback=None):
             needs_init = True
             self.set(section="BOT", option="voice_command", value="voice")
+        if not self.get(section="BOT", option="help_command", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="help_command", value="dndhelp")
+
+        if not self.get(section="BOT", option="voice_user_cooldown", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="voice_user_cooldown", value="10")
+        if not self.get(section="BOT", option="voices_user_cooldown", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="voices_user_cooldown", value="15")
+        if not self.get(section="BOT", option="voices_global_cooldown", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="voices_global_cooldown", value="10")
+        if not self.get(section="BOT", option="speak_global_cooldown", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="speak_global_cooldown", value="1")
+        if not self.get(section="BOT", option="speak_user_cooldown", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="speak_user_cooldown", value="10")
+        if not self.get(section="BOT", option="join_user_cooldown", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="join_user_cooldown", value="30")
+        if not self.get(section="BOT", option="help_global_cooldown", fallback=None):
+            needs_init = True
+            self.set(section="BOT", option="help_global_cooldown", value="30")
 
         if not self.has_section("SERVER"):
             needs_init = True
@@ -96,3 +121,12 @@ class TCDNDConfig(configparser.ConfigParser):
         with open(self.path, "w", encoding="utf-8") as configfile:
             self.write(configfile)
         self.read(self.path)
+
+    def get_command_cooldown(self, command: str, scope: str) -> int:
+        if scope not in ["user", "global"]:
+            return 0
+        if self.has_option(section="BOT", option=f"{command}_{scope}_cooldown".lower()):
+            return self.getint(
+                section="BOT", option=f"{command}_{scope}_cooldown".lower(), fallback=0
+            )
+        return 0
