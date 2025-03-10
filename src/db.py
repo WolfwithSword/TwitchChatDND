@@ -12,9 +12,7 @@ async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession
 
 
 debug_mode = os.environ["TCDND_DEBUG_MODE"] == "1"
-logging.getLogger("sqlalchemy.engine").setLevel(
-    logging.DEBUG if debug_mode else logging.INFO
-)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.DEBUG if debug_mode else logging.INFO)
 logging.getLogger("sqlalchemy.engine").handlers = logger.handlers
 
 

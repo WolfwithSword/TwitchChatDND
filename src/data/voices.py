@@ -34,11 +34,7 @@ class Voice(Base):
         self.source: str = source
 
     def __eq__(self, other):
-        return (
-            self.name == other.name
-            and self.uid == other.uid
-            and self.source == other.source
-        )
+        return self.name == other.name and self.uid == other.uid and self.source == other.source
 
     def __hash__(self):
         return hash(f"{self.name}{self.uid}{self.source}")
@@ -58,12 +54,7 @@ async def _upsert_voice(name: str, uid: str, source: str) -> Voice | None:
         return None
     async with async_session() as session:
         async with session.begin():
-            query = (
-                select(Voice)
-                .where(Voice.name == name)
-                .where(Voice.uid == uid)
-                .where(Voice.source == source)
-            )
+            query = select(Voice).where(Voice.name == name).where(Voice.uid == uid).where(Voice.source == source)
             result = await session.execute(query)
             voice = result.scalars().first()
 
@@ -106,9 +97,7 @@ async def delete_voice(uid: str | list = None, source: str = None) -> bool:
         return False
 
 
-async def fetch_voice(
-    name: str = None, uid: str = None, source: str = None
-) -> Voice | None:
+async def fetch_voice(name: str = None, uid: str = None, source: str = None) -> Voice | None:
     if not any([name, uid]):
         return None
     async with async_session() as session:
@@ -134,16 +123,15 @@ async def fetch_voices(source: str = None, limit: int = 100) -> list[Voice]:
         res = result.scalars().all()
         if not res and source == "elevenlabs":
             logger.info("Adding default ElevenLabs voice 'Will'")
-            v = await _upsert_voice(
-                name="Will", uid="bIHbv24MWmeRgasZH58o", source=SOURCE_11L
-            )
+            v = await _upsert_voice(name="Will", uid="bIHbv24MWmeRgasZH58o", source=SOURCE_11L)
             return [v]
         return res
 
 
-async def fetch_paginated_voices(
-    page: int, per_page: int = 20, name_filter: str = None, filter_source: str = None
-) -> list[Voice]:
+# fmt: off
+async def fetch_paginated_voices(page: int, per_page: int = 20, name_filter: str = None,
+                                 filter_source: str = None) -> list[Voice]:
+# fmt: on
     if not exclude_names:
         exclude_names = []
 

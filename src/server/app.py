@@ -103,9 +103,7 @@ class ServerApp:
                             if _voice:
                                 voice_id = member.preferred_tts_uid
                                 tts_type = _voice.source
-                        async for chunk, _duration in self.tts[tts_type].get_stream(
-                            message, voice_id
-                        ):
+                        async for chunk, _duration in self.tts[tts_type].get_stream(message, voice_id):
                             # TODO: Allow for break / interruption from emergency stuff - also hide stuff.
                             # Or yknow, just instruct to hide the browser source.
                             # Yeah, to mute, best to just hide the browser source.
@@ -166,10 +164,7 @@ class ServerApp:
     async def send_members(self, members: list[Member] = None):
         if members is None:
             members = []
-        user_data = [
-            {"name": member.name, "pfp_url": member.pfp_url}
-            for member in sorted(members)
-        ]
+        user_data = [{"name": member.name, "pfp_url": member.pfp_url} for member in sorted(members)]
         if not user_data:
             speech_message = {"type": "endspeech"}
             await members_queue.put(speech_message)

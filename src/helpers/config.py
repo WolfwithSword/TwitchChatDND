@@ -2,9 +2,7 @@ import configparser
 import base64
 
 # ID is fine to ship
-_client_id = base64.b64decode("dXp4NXFiOXNzZXl0dGtvZXF5cXdydmthOGdic3Br").decode(
-    "utf-8"
-)
+_client_id = base64.b64decode("dXp4NXFiOXNzZXl0dGtvZXF5cXdydmthOGdic3Br").decode("utf-8")
 
 
 class TCDNDConfig(configparser.ConfigParser):
@@ -78,9 +76,7 @@ class TCDNDConfig(configparser.ConfigParser):
             self.set(section="CACHE", option="enabled", value="true")
         if not self.has_option(section="CACHE", option="cache_expiry"):
             needs_init = True
-            self.set(
-                section="CACHE", option="cache_expiry", value=str(7 * 24 * 60 * 60)
-            )
+            self.set(section="CACHE", option="cache_expiry", value=str(7 * 24 * 60 * 60))
         if not self.has_option(section="CACHE", option="tts_cache_expiry"):
             needs_init = True
             self.set(
@@ -126,7 +122,5 @@ class TCDNDConfig(configparser.ConfigParser):
         if scope not in ["user", "global"]:
             return 0
         if self.has_option(section="BOT", option=f"{command}_{scope}_cooldown".lower()):
-            return self.getint(
-                section="BOT", option=f"{command}_{scope}_cooldown".lower(), fallback=0
-            )
+            return self.getint(section="BOT", option=f"{command}_{scope}_cooldown".lower(), fallback=0)
         return 0

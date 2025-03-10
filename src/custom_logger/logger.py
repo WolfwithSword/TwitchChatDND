@@ -4,9 +4,7 @@ import sys
 from logging.handlers import RotatingFileHandler, QueueHandler, QueueListener
 from queue import Queue
 
-LOGGER_FORMAT = (
-    "%(asctime)s [%(threadName)s] [%(name)s] [%(module)s] [%(levelname)s] - %(message)s"
-)
+LOGGER_FORMAT = "%(asctime)s [%(threadName)s] [%(name)s] [%(module)s] [%(levelname)s] - %(message)s"
 
 
 class CustomStreamHandler(logging.StreamHandler):
@@ -72,9 +70,7 @@ class CustomLogger:
             stream_handler = CustomStreamHandler()
             handlers = [stream_handler]
 
-        self.listener = QueueListener(
-            self.log_queue, *handlers, respect_handler_level=True
-        )
+        self.listener = QueueListener(self.log_queue, *handlers, respect_handler_level=True)
         self.listener.start()
 
         queue_handler = QueueHandler(self.log_queue)
