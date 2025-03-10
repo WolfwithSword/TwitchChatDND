@@ -20,7 +20,6 @@ from chatdnd.events.tts_events import on_elevenlabs_connect, request_elevenlabs_
 
 from data.voices import _upsert_voice, fetch_voices, get_all_voice_ids, delete_voice
 from data.member import remove_tts
-from data import Voice
 
 FORMAT = 'pcm_22050' # Match local tts quality, not top but still good
 MODEL = 'eleven_flash_v2_5'#'eleven_monolingual_v1'
@@ -38,7 +37,7 @@ class ElevenLabsTTS(TTS):
             self.setup()
             on_elevenlabs_test_speak.addListener(self.test_speak)
 
-        self.sample_rate = int(FORMAT.split("_")[-1])
+        self.sample_rate = int(FORMAT.rsplit("_", maxsplit=1)[-1])
         self.bits_per_sample = 16
         self.num_channels = 1
 
@@ -141,7 +140,7 @@ class ElevenLabsTTS(TTS):
             client = ElevenLabs(api_key=key)
 
             try:
-                user = client.user.get()
+                client.user.get()
             except Exception:
                 return False
 
@@ -196,7 +195,7 @@ class ElevenLabsTTS(TTS):
         if v:
             if run_sync_always:
                 run_coroutine_sync(_upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L))
-            elif loop := asyncio.get_event_loop():
+            elif asyncio.get_event_loop():
                 asyncio.create_task(_upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L))
             else:
                 run_coroutine_sync(_upsert_voice(name=v.name, uid=v.voice_id, source=SOURCE_11L))
@@ -215,7 +214,9 @@ class ElevenLabsTTS(TTS):
 
     @staticmethod
     def voices_messages() -> str:
-        return "Search for AI voices here and copy their voice-id: https://elevenlabs.io/app/voice-library - the streamer needs the voice-id added to their library for it to work!"
+        msg = "Search for AI voices here and copy their voice-id: https://elevenlabs.io/app/voice-library" \
+              "- the streamer needs the voice-id added to their library for it to work!"
+        return msg
 
 
     def voice_list_message(self) -> str:
@@ -225,8 +226,9 @@ class ElevenLabsTTS(TTS):
     def test_speak(self, text:str = "Hello there. How are you?", voice_id: str = None):
         if not voice_id or not self.config.get(section="ELEVENLABS", option="api_key", fallback=None):
             return
-        # Could use `preview_url` from Voice object, but it is different for each voice, likely best to spend a few credits for consistency and cache it for a long time
-        voice_o = self.get_voice_object(voice_id)
+        # Could use `preview_url` from Voice object, but it is different for each voice,
+        # likely best to spend a few credits for consistency and cache it for a long time
+        self.get_voice_object(voice_id)
 
         key = f"11l.preview.{voice_id}"
         audio = None
@@ -238,8 +240,8 @@ class ElevenLabsTTS(TTS):
         if not audio:
             try:
                 client = ElevenLabs(api_key=self.config.get(section="ELEVENLABS", option="api_key"))
-                user = client.user.get() # Trigger bad api key
-            except:
+                client.user.get() # Trigger bad api key
+            except Exception:
                 on_elevenlabs_connect.trigger([False]) # needed?
                 return
             audio = list(client.generate(text=text, voice=voice_id, model=MODEL))

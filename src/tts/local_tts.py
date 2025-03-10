@@ -10,10 +10,9 @@ from helpers.utils import run_coroutine_sync
 from helpers.constants import SOURCE_LOCAL
 
 from data.voices import _upsert_voice, fetch_voices, get_all_voice_ids
-from data import Voice
 
-
-# TODO: For local TTS, there is a slight minor clipping when transitioning between chunks. Mitigated with a large chunk size, need better solution? may be fixed
+# TODO: For local TTS, there is a slight minor clipping when transitioning between chunks.
+#  Mitigated with a large chunk size, need better solution? may be fixed
 
 
 class LocalTTS(TTS):

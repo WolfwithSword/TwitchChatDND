@@ -84,6 +84,6 @@ class TCDNDConfig(configparser.ConfigParser):
         return self.getboolean(section='CACHE', option='enabled', fallback=False)
 
     def write_updates(self):
-        with open(self.path, 'w') as configfile:
+        with open(self.path, 'w', encoding='utf-8') as configfile:
             self.write(configfile)
         self.read(self.path)

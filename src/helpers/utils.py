@@ -1,6 +1,7 @@
 import os
 import sys
 import asyncio
+import argparse
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Coroutine, TypeVar
@@ -9,6 +10,12 @@ from packaging.version import Version
 from _version import __version__ as current_version
 
 T = TypeVar("T")
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run the application.")
+    parser.add_argument('--debug', action='store_true', help="Enable debug logging level.")
+    return parser.parse_args()
+
 
 def get_resource_path(relative_path, from_resources: bool = False):
     # Get absolute path to a resource, frozen or local (relative to helpers/utils.py)
@@ -55,7 +62,7 @@ def check_for_updates():
     owner = "WolfwithSword" # TODO consider moving to a metadata file?
     repo = "TwitchChatDND"
     url = f"https://api.github.com/repos/{owner}/{repo}/releases"
-    response = requests.get(url)
+    response = requests.get(url, timeout=10)
     if response.status_code != 200:
         return None
 

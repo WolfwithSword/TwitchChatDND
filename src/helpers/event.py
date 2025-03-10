@@ -43,7 +43,7 @@ class Event:
                     try:
                         loop = asyncio.get_running_loop()
                         loop.create_task(self._run_async_func(func, *args))
-                    except Exception as e:
+                    except Exception:
                         loop = asyncio.new_event_loop()
                         loop.run_until_complete(self._run_async_func(func, *args))
                 else:
@@ -53,9 +53,9 @@ class Event:
                     _TASK_QUEUE.put((func, *args))
                     continue
                 else:
-                    raise
+                    raise e from e
             except Exception as e:
-                raise
+                raise e from e
 
 
     async def _run_async_func(self, func, *args):

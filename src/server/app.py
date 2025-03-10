@@ -1,26 +1,20 @@
-
-import os
-import sys
 import asyncio
 from asyncio import Queue
 
 from functools import wraps
-from quart import Quart, websocket, send_from_directory, copy_current_websocket_context
+from quart import Quart, websocket, send_from_directory
 
 from data import Member
 from data.voices import fetch_voice
 from tts import LocalTTS, ElevenLabsTTS
 from helpers import TCDNDConfig as Config
-from helpers.utils import run_coroutine_sync
+from helpers.utils import get_resource_path
+from helpers.constants import SOURCE_11L, SOURCE_LOCAL
 from custom_logger.logger import logger
 
 from chatdnd.events.chat_events import chat_say_command
 from chatdnd.events.session_events import on_party_update
 from chatdnd.events.web_events import on_overlay_open
-from helpers.utils import get_resource_path
-
-from data.voices import fetch_voice
-from helpers.constants import SOURCE_11L, SOURCE_LOCAL
 
 
 STATIC_DIR = get_resource_path("../server/static", from_resources=True)
@@ -32,7 +26,6 @@ overlay_clients = set()
 def collect_tts_websockets(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        global clients
         clients.add(websocket._get_current_object())
         try:
             return await func(*args, **kwargs)
@@ -43,7 +36,6 @@ def collect_tts_websockets(func):
 def collect_member_websockets(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        global overlay_clients
         overlay_clients.add(websocket._get_current_object())
         try:
             return await func(*args, **kwargs)
@@ -105,7 +97,8 @@ class ServerApp():
                                 voice_id = member.preferred_tts_uid
                                 tts_type = _voice.source
                         async for chunk, _duration in self.tts[tts_type].get_stream(message, voice_id):
-                            # TODO: Allow for break / interruption from emergency stuff - also hide stuff. Or yknow, just instruct to hide the browser source.
+                            # TODO: Allow for break / interruption from emergency stuff - also hide stuff.
+                            # Or yknow, just instruct to hide the browser source.
                             # Yeah, to mute, best to just hide the browser source.
                             if not send_bounce:
                                 send_bounce = True
@@ -126,7 +119,6 @@ class ServerApp():
                     await asyncio.sleep(0.1)
             except Exception as e:
                 logger.error(e)
-                pass
             finally:
                 logger.debug("tts ws closed")
 
@@ -161,7 +153,9 @@ class ServerApp():
         # TODO on port change, request app restart
         await self.app.run_task(host=host, port=self.config.getint(section="SERVER", option="port"), **kwargs)
 
-    async def send_members(self, members: list[Member] = []):
+    async def send_members(self, members: list[Member] = None):
+        if members is None:
+            members = []
         user_data = [{"name": member.name, "pfp_url": member.pfp_url} for member in sorted(members)]
         if not user_data:
             speech_message = {
