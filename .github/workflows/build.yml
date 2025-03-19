@@ -15,7 +15,8 @@ on:
      - 'requirements.txt'
    branches:
      - main
- 
+ release:
+   types: [published]
 defaults:
   run:
     shell: bash
