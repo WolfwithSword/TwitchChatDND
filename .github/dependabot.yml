@@ -7,6 +7,8 @@ updates:
     interval: "weekly"
   assignees:
     - "WolfwithSword"
+  reviewers:
+    - "WolfwithSword"
   labels:
     - "dependency"
   commit-message:
@@ -29,6 +31,8 @@ updates:
   schedule:
     interval: "weekly"
   assignees:
+    - "WolfwithSword"
+  reviewers:
     - "WolfwithSword"
   labels:
     - "dependency"
