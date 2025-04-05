@@ -1,0 +1,49 @@
+version: 2
+updates:
+
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  assignees:
+    - "WolfwithSword"
+  labels:
+    - "dependency"
+  commit-message:
+    prefix: "chore[actions]"
+    include: "scope"
+  open-pull-requests-limit: 5
+  pull-request-branch-name:
+    separator: "-"
+  groups:
+    updates:
+      applies-to: version-updates
+      patterns:
+      - "*"
+    security-updates:
+      applies-to: security-updates
+      patterns:
+      - "*"
+- package-ecosystem: "pip"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  assignees:
+    - "WolfwithSword"
+  labels:
+    - "dependency"
+  commit-message:
+    prefix: "chore[pip]"
+    include: "scope"
+  open-pull-requests-limit: 5
+  pull-request-branch-name:
+    separator: "-"
+  groups:
+    updates:
+      applies-to: version-updates
+      patterns:
+      - "*"
+    security-updates:
+      applies-to: security-updates
+      patterns:
+      - "*"
