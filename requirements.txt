@@ -5,7 +5,7 @@ customtkinter==5.2.2
 Quart==0.20.0
 SQLAlchemy==2.0.40
 aiosqlite==0.21.0
-pillow==11.1.0
+pillow==11.2.1
 requests==2.32.3
 elevenlabs==1.56.0
 CTkListbox==1.5
