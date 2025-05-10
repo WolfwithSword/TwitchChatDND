@@ -33,6 +33,8 @@ class MemberCard(ctk.CTkFrame):
         self.height = height
         self.textsize = textsize
         self.grid_propagate(False)
+
+        self.bg_label = None
         self.create_card()
 
         self.bind("<Button-1>", self.open_edit_popup)
@@ -81,6 +83,8 @@ class MemberCard(ctk.CTkFrame):
         on_external_member_change.trigger()
 
     def setup_pfp(self):
+        if not self.winfo_exists():
+            return
         try:
             url = self.member.pfp_url
             response = requests.get(url, timeout=10)
@@ -92,13 +96,19 @@ class MemberCard(ctk.CTkFrame):
 
             self.bg_image = ctk.CTkImage(img, img, (self.width, self.width))
 
-            self.bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
-            self.bg_label.grid(row=0, column=0, sticky="nsew", rowspan=2)
+            if not self.bg_label:
+                self.bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
+                self.bg_label.grid(row=0, column=0, sticky="nsew", rowspan=2)
+            else:
+                self.bg_label.configure(image=self.bg_image)
         except Exception as e:
             logger.warning(f"Could not fetch image for {self.member}. {e}")
             self.bg_image = None
-            self.bg_label = ctk.CTkLabel(self, text="No Image", font=("Arial", self.textsize))
-            self.bg_label.grid(row=0, column=0, sticky="nsew")
+            if not self.bg_label:
+                self.bg_label = ctk.CTkLabel(self, text="No Image", font=("Arial", self.textsize))
+                self.bg_label.grid(row=0, column=0, sticky="nsew")
+            else:
+                self.bg_label.configure(image=self.bg_image)
         self.bg_label.bind("<Button-1>", self.open_edit_popup)
         self.bg_label.bind("<Button-3>", self.show_ctx_menu)
 
