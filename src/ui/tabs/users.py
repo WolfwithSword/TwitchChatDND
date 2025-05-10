@@ -1,8 +1,9 @@
 import asyncio
 import customtkinter as ctk
+from helpers.utils import run_coroutine_sync
 from ui.widgets.member_card import MemberCard
-from data.member import fetch_paginated_members
-
+from data.member import create_or_get_member, fetch_paginated_members
+from chatdnd.events.ui_events import on_external_member_change
 from twitch.chat import ChatController
 
 
@@ -38,10 +39,24 @@ class UsersTab:
         self.next_button = ctk.CTkButton(self.parent, text="Next", command=self.next_page)
         self.next_button.pack(side=ctk.LEFT, padx=10, pady=10)
 
+        self.add_var = ctk.StringVar()
+
+        self.add_btn = ctk.CTkButton(self.parent, text="Add", command=self.add_by_name, width=50)
+        self.add_btn.pack(side=ctk.LEFT, padx=(20, 4), pady=10)
+        self.add_box = ctk.CTkEntry(
+            self.parent,
+            textvariable=self.add_var,
+            placeholder_text="Add by name...",
+            width=220,
+        )
+        self.add_box.bind("<Return>", command=self.add_by_name)
+        self.add_box.pack(side=ctk.LEFT, padx=(4, 10), pady=10)
+
         self.refresh_button = ctk.CTkButton(self.parent, text="Refresh", command=self.schedule_load_members)
         self.refresh_button.pack(side=ctk.RIGHT, padx=10, pady=10)
 
         self.load_members_task = asyncio.create_task(self.load_members())
+        on_external_member_change.addListener(self.schedule_load_members)
 
     def update_search_filter(self, *args):
         self.name_filter = self.search_var.get()
@@ -70,7 +85,7 @@ class UsersTab:
                 new_cards = list()
                 columns = 6
                 for member in members:
-                    member_card = MemberCard(self.members_list_frame, member, self.chat_ctrl.config)
+                    member_card = MemberCard(self.members_list_frame, member, self.chat_ctrl, self.chat_ctrl.config)
                     new_cards.append(member_card)
                 new_cards = sorted(new_cards[:], key=lambda x: x.member.name)
                 for index, card in enumerate(new_cards):
@@ -94,3 +109,13 @@ class UsersTab:
     def next_page(self):
         self.page += 1
         self.schedule_load_members()
+
+    def add_by_name(self, event=None):
+        if not self.add_var.get():
+            return
+        user = run_coroutine_sync(self.chat_ctrl.twitch_utils.get_user_by_name(username=self.add_var.get()))
+        if not user:
+            return
+        member = run_coroutine_sync(create_or_get_member(name=user.display_name, pfp_url=user.profile_image_url))
+        if member:
+            self.schedule_load_members()

@@ -1,25 +1,31 @@
 import asyncio
 from io import BytesIO
 
+import tkinter as tk
 import customtkinter as ctk
 import requests
 from PIL import Image
 
 from custom_logger.logger import logger
 from data import Member
-from data.member import fetch_member, update_tts
+from data.member import create_or_get_member, fetch_member, update_tts, delete_member
 from helpers import TCDNDConfig as Config
 from helpers.constants import SOURCE_11L, SOURCE_LOCAL, SOURCES
 from helpers.utils import run_coroutine_sync
 from tts import ElevenLabsTTS, LocalTTS
+from chatdnd.events.chat_events import chat_on_party_modify
+from chatdnd.events.ui_events import ui_refresh_user, ui_request_member_refresh, on_external_member_change
+from chatdnd.events.session_events import session_refresh_member
+from twitch.chat import ChatController
 
 
 class MemberCard(ctk.CTkFrame):
 
     # fmt: skip
-    def __init__(self, parent, member: Member, config: Config, width=160, height=200, textsize=12, *args, **kwargs):
+    def __init__(self, parent, member: Member, chat_ctrl: ChatController, config: Config, width=160, height=200, textsize=12, *args, **kwargs):
         super().__init__(parent, width=width, height=height, *args, **kwargs)
         self.member: Member = member
+        self.chat_ctrl = chat_ctrl
         self.config: Config = config
         self.bg_image = None
         self.bg_label = None
@@ -32,6 +38,8 @@ class MemberCard(ctk.CTkFrame):
         self.bind("<Button-1>", self.open_edit_popup)
         self.configure(cursor="hand2")
 
+        ui_refresh_user.addListener(self._refresh_member)
+
     def create_card(self):
         self.setup_pfp()
 
@@ -43,6 +51,34 @@ class MemberCard(ctk.CTkFrame):
         )
         name_label.grid(row=2, column=0, sticky="s", padx=5, pady=(2, 10))
         name_label.bind("<Button-1>", self.open_edit_popup)
+
+        self.context_menu = tk.Menu(
+            self,
+            tearoff=0,
+            background="#2b2b2b",
+            foreground="#ffffff",
+            borderwidth=0,
+            activeborderwidth=0,
+            activebackground="#505050",
+            activeforeground="#ffffff",
+            relief="flat",
+            border=0,
+        )
+
+        self.context_menu.add_command(label="Add to party", command=lambda: chat_on_party_modify.trigger([self.member, False]))
+        self.context_menu.add_command(label="Kick from party", command=lambda: chat_on_party_modify.trigger([self.member, True]))
+        self.context_menu.add_separator()
+        self.context_menu.add_command(label="Refresh", command=lambda: ui_request_member_refresh.trigger([self.member]))
+        self.context_menu.add_separator()
+        self.context_menu.add_command(label="Delete", command=self.delete_user)
+
+    def show_ctx_menu(self, event):
+        self.context_menu.tk_popup(event.x_root, event.y_root)
+
+    def delete_user(self):
+        chat_on_party_modify.trigger([self.member, True])
+        run_coroutine_sync(delete_member(self.member))
+        on_external_member_change.trigger()
 
     def setup_pfp(self):
         try:
@@ -58,13 +94,22 @@ class MemberCard(ctk.CTkFrame):
 
             self.bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
             self.bg_label.grid(row=0, column=0, sticky="nsew", rowspan=2)
-            self.bg_label.bind("<Button-1>", self.open_edit_popup)
         except Exception as e:
             logger.warning(f"Could not fetch image for {self.member}. {e}")
             self.bg_image = None
             self.bg_label = ctk.CTkLabel(self, text="No Image", font=("Arial", self.textsize))
             self.bg_label.grid(row=0, column=0, sticky="nsew")
-            self.bg_label.bind("<Button-1>", self.open_edit_popup)
+        self.bg_label.bind("<Button-1>", self.open_edit_popup)
+        self.bg_label.bind("<Button-3>", self.show_ctx_menu)
+
+    def _refresh_member(self, user):
+        if not user or user.display_name.upper() != self.member.name.upper():
+            return
+        member = run_coroutine_sync(create_or_get_member(name=user.display_name, pfp_url=user.profile_image_url))
+        if member:
+            self.member = member
+            self.setup_pfp()
+            session_refresh_member.trigger([member])
 
     def open_edit_popup(self, event=None):
         self.member = run_coroutine_sync(fetch_member(name=self.member.name))
@@ -143,6 +188,10 @@ class MemberEditCard(ctk.CTkToplevel):
 
         self.save_button = ctk.CTkButton(self, text="Save", command=self.save_changes)
         self.save_button.pack(pady=10)
+
+        num_sessions_label = ctk.CTkLabel(self, text=f"Number of Sessions: {self.member.num_sessions}")
+        num_sessions_label.pack(pady=(20, 5))
+
 
     def _update_voicelist(self, choice):
         voices = self.tts[choice].get_voices()

@@ -1,5 +1,8 @@
+import datetime
+from typing import List
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Integer, JSON, asc, ForeignKey, null
+from sqlalchemy import String, Integer, JSON, asc, ForeignKey, null, DateTime
 from sqlalchemy.future import select
 
 from data.base import Base
@@ -20,6 +23,7 @@ class Member(Base):
     num_sessions: Mapped[int] = mapped_column(Integer, default=0)  # increment on end/complete session
     preferred_tts_uid: Mapped[str] = mapped_column(ForeignKey("voices.uid"), nullable=True)
     preferred_tts: Mapped[Voice] = relationship("Voice", lazy="subquery")
+    time_since_last_session: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     data: Mapped[dict] = mapped_column(JSON, default=dict)
     # We can store arbitrary data in here if we need extra columns and stuff later, just need to be safe with checking
@@ -45,9 +49,47 @@ class Member(Base):
         return self.name > other.name
 
 
+async def member_set_session_time(members: List[Member]):
+    if not members:
+        return
+    names = [member.name for member in members]
+    async with async_session() as session:
+        query = select(Member).where(Member.name.in_(names))
+        _members = await session.execute(query)
+        _members = _members.scalars().all()
+        _now = datetime.datetime.now()
+        for member in _members:
+            member.time_since_last_session = _now
+        if _members:
+            await session.commit()
+
+
+async def member_inc_sessions(members: List[Member]):
+    if not members:
+        return
+    names = [member.name for member in members]
+    async with async_session() as session:
+        query = select(Member).where(Member.name.in_(names))
+        _members = await session.execute(query)
+        _members = _members.scalars().all()
+        for member in _members:
+            member.num_sessions += 1
+        if _members:
+            await session.commit()
+
+
 async def create_or_get_member(name: str, pfp_url: str = "") -> Member:
     member = await _upsert_member(name, pfp_url)
     return member
+
+
+async def delete_member(member: Member):
+    async with async_session() as session:
+        _member = await session.execute(select(Member).where(Member.name == member.name))
+        _member = _member.scalar_one()
+        if _member:
+            await session.delete(_member)
+            await session.commit()
 
 
 async def _upsert_member(name: str, pfp_url: str) -> Member:
@@ -62,7 +104,7 @@ async def _upsert_member(name: str, pfp_url: str) -> Member:
                 # Update existing member
                 if member.pfp_url != pfp_url:
                     member.pfp_url = pfp_url
-                await session.commit()
+                    await session.commit()
                 return member
             else:
                 # Create new member
