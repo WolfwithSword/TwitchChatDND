@@ -9,6 +9,9 @@ from chatdnd.events.chat_events import (
     chat_say_command,
 )
 
+from chatdnd.events.session_events import on_active_party_update
+from chatdnd.events.ui_events import ui_force_home_party_update
+
 
 class HomeTab:
     def __init__(self, parent, chat_ctrl: ChatController):
@@ -96,6 +99,9 @@ class HomeTab:
 
         ##################################
 
+        on_active_party_update.addListener(self._fill_party_frame)
+        ui_force_home_party_update.addListener(self._on_session_start)
+
     def _add_chat_msg(self, member, message):
         name = member.name
 
@@ -142,6 +148,7 @@ class HomeTab:
             member_card = MemberCard(
                 self._party_frame,
                 member,
+                self.chat_ctrl,
                 self.config,
                 width=130,
                 height=170,
@@ -172,15 +179,18 @@ class HomeTab:
     def _start_session(self):
         result = self.chat_ctrl.start_session(self.party_size_var.get())
         if result:
-            for child in self.queue_list.winfo_children():
-                child.destroy()
-            self.queue_label_var.set(value=f"{len(self.chat_ctrl.session_mgr.session.queue)} in Queue")
-            self.session_status_var.set(value=self.chat_ctrl.session_mgr.session.state.name.capitalize())
-            self.party_size_slider.configure(state="disabled")
-            self.start_session.configure(state="disabled")
-            self.end_button.configure(state="normal")
-            self._fill_party_frame()
-            self._clear_chat_log()
+            self._on_session_start()
+
+    def _on_session_start(self):
+        for child in self.queue_list.winfo_children():
+            child.destroy()
+        self.queue_label_var.set(value=f"{len(self.chat_ctrl.session_mgr.session.queue)} in Queue")
+        self.session_status_var.set(value=self.chat_ctrl.session_mgr.session.state.name.capitalize())
+        self.party_size_slider.configure(state="disabled")
+        self.start_session.configure(state="disabled")
+        self.end_button.configure(state="normal")
+        self._fill_party_frame()
+        self._clear_chat_log()
 
     def _end_session(self):
         self.chat_ctrl.end_session()

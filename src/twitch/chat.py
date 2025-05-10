@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from twitchAPI.chat import Chat, ChatCommand, EventData, Twitch
 from twitchAPI.chat.middleware import (
     UserRestriction,
@@ -31,8 +32,11 @@ from chatdnd.events.chat_events import (
     chat_bot_on_connect,
     chat_say_command,
     chat_on_join_queue,
+    chat_force_party_start_setup,
 )
 from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_event
+
+from chatdnd.events.session_events import on_active_party_update
 
 from tts import ElevenLabsTTS, LocalTTS
 
@@ -49,6 +53,8 @@ class ChatController:
 
         ui_settings_twitch_channel_update_event.addListener(self.start)
         twitchutils_twitch_on_connect_event.addListener(self.start)
+        on_active_party_update.addListener(self._update_say_cmd)
+        chat_force_party_start_setup.addListener(self._session_start_actions)
 
     async def start(self, status: bool = None, twitch_utils: TwitchUtils = None, wait_tries: int = 5):
         if not twitch_utils:
@@ -119,17 +125,9 @@ class ChatController:
                 self._add_user_to_queue,
                 command_middleware=[ChannelUserCommandCooldown(self.config.get_command_cooldown("join", "user"))],
             )
-        if self.chat.unregister_command(self.command_list["say"]):
-            self.command_list["say"] = self.config.get(section="BOT", option="speak_command")
-            self.chat.register_command(
-                self.command_list["say"],
-                self._say,
-                command_middleware=[
-                    UserRestriction(allowed_users=[x.name for x in self.session_mgr.session.party]),
-                    ChannelCommandCooldown(self.config.get_command_cooldown("speak", "global")),
-                    ChannelUserCommandCooldown(self.config.get_command_cooldown("speak", "user")),
-                ],
-            )
+
+        self._update_say_cmd()
+
         if self.chat.unregister_command(self.command_list["voices"]):
             self.command_list["voices"] = self.config.get(section="BOT", option="voices_command")
             self.chat.register_command(
@@ -154,7 +152,19 @@ class ChatController:
                 self._send_help_cmd,
                 command_middleware=[ChannelCommandCooldown(self.config.get_command_cooldown("help", "global"))],
             )
-        # self.end_session()
+
+    def _update_say_cmd(self):
+        if self.chat.unregister_command(self.command_list["say"]):
+            self.command_list["say"] = self.config.get(section="BOT", option="speak_command")
+            self.chat.register_command(
+                self.command_list["say"],
+                self._say,
+                command_middleware=[
+                    UserRestriction(allowed_users=[x.name for x in self.session_mgr.session.party]),
+                    ChannelCommandCooldown(self.config.get_command_cooldown("speak", "global")),
+                    ChannelUserCommandCooldown(self.config.get_command_cooldown("speak", "user")),
+                ],
+            )
 
     def stop(self):
         if self.chat:
@@ -166,12 +176,18 @@ class ChatController:
         self.send_message(text="Chat DnD is now active! ⚔️🐉")
         await ready_event.chat.join_room(self.twitch_utils.channel.display_name)  # or .login?
 
-    def send_message(self, text: str):
+    def send_message(self, text: str, as_announcement: bool = False):
         logger.debug(f"Sending chat msg: {text}")
-        asyncio.run_coroutine_threadsafe(
-            self.chat.send_message(text=text, room=self.twitch_utils.channel.display_name),
-            asyncio.get_event_loop(),
-        )
+        if as_announcement:
+            asyncio.run_coroutine_threadsafe(
+                self.twitch.send_chat_announcement(self.twitch_utils.channel.id, self.twitch_utils.channel.id, text),
+                asyncio.get_event_loop(),
+            )
+        else:
+            asyncio.run_coroutine_threadsafe(
+                self.chat.send_message(text=text, room=self.twitch_utils.channel.display_name),
+                asyncio.get_event_loop(),
+            )
 
     def open_session(self):
         if not self.chat:
@@ -185,26 +201,29 @@ class ChatController:
             self._add_user_to_queue,
             command_middleware=[ChannelUserCommandCooldown(self.config.get_command_cooldown("join", "user"))],
         )
-        self.send_message(f"Session started! Type {self.chat._prefix}{self.command_list['join']} to queue for the adventuring party")
+        self.send_message(f"Session started! Type {self.chat._prefix}{self.command_list['join']} to queue for the adventuring party", True)
         chat_on_session_open.trigger()
+
+    def _session_start_actions(self):
+        self.chat.unregister_command(self.command_list["join"])
+        party = [x.name for x in self.session_mgr.session.party]
+        self.chat.register_command(
+            self.command_list["say"],
+            self._say,
+            command_middleware=[
+                UserRestriction(allowed_users=[x.name for x in self.session_mgr.session.party]),
+                ChannelCommandCooldown(self.config.get_command_cooldown("speak", "global")),
+                ChannelUserCommandCooldown(self.config.get_command_cooldown("speak", "user")),
+            ],
+        )
+
+        self.send_message(f"Say welcome to our party members: {", ".join(party)}")
+        self.send_message(f"Party members, type {self.chat._prefix}{self.command_list['say']} <msg> to have it spoken via TTS")
+        chat_on_session_start.trigger()
 
     def start_session(self, party_size) -> bool:
         if self.session_mgr.start_session(party_size=party_size):  # config
-            self.chat.unregister_command(self.command_list["join"])
-            party = [x.name for x in self.session_mgr.session.party]
-            self.chat.register_command(
-                self.command_list["say"],
-                self._say,
-                command_middleware=[
-                    UserRestriction(allowed_users=[x.name for x in self.session_mgr.session.party]),
-                    ChannelCommandCooldown(self.config.get_command_cooldown("speak", "global")),
-                    ChannelUserCommandCooldown(self.config.get_command_cooldown("speak", "user")),
-                ],
-            )
-
-            self.send_message(f"Say welcome to our party members: {", ".join(party)}")
-            self.send_message(f"Party members, type {self.chat._prefix}{self.command_list['say']} <msg> to have it spoken via TTS")
-            chat_on_session_start.trigger()
+            self._session_start_actions()
             return True
         else:
             self.send_message(
@@ -228,10 +247,15 @@ class ChatController:
         # TODO we also want a default pfp perhaps if non exists
         member = await create_or_get_member(name=cmd.user.display_name, pfp_url=user.profile_image_url)
         if member not in self.session_mgr.session.queue:
+            if (member.time_since_last_session and
+                datetime.datetime.now() - datetime.timedelta(minutes=10) < member.time_since_last_session):
+                await cmd.reply(f"{member.name} was in a session too recently!")
+                return
             await cmd.reply(f"{member.name} added to queue")
             chat_on_join_queue.trigger([cmd.user.name])
         else:
             await cmd.reply(f"{member.name} already in the queue")
+            return
         self.session_mgr.join_queue(member)
 
     async def _say(self, cmd: ChatCommand):

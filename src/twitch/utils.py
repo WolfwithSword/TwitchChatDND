@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import webbrowser
 
 from twitchAPI.helper import first
@@ -9,11 +9,12 @@ from twitchAPI.type import AuthScope
 
 from diskcache import Cache
 
+from data.member import Member
 from helpers import TCDNDConfig as Config
 from custom_logger.logger import logger
 
 from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_event
-from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event
+from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_refresh_user, ui_request_member_refresh
 
 
 class TwitchUtils:
@@ -33,8 +34,9 @@ class TwitchUtils:
             self.cache = None
 
         ui_settings_twitch_auth_update_event.addListener(self.start)
+        ui_request_member_refresh.addListener(self.refresh_user_by_member)
 
-    async def _token_gen(self, twitch: Twitch, target_scope: List[AuthScope]) -> (str, str):
+    async def _token_gen(self, twitch: Twitch, target_scope: List[AuthScope]) -> Tuple[str, str]:
         code_flow = CodeFlow(twitch, target_scope)
         # Local callback didnt work, but CodeFlow does. Will open browser for it, then store locally due to StorageHelper
         code, url = await code_flow.get_code()
@@ -44,10 +46,7 @@ class TwitchUtils:
 
     async def start(self):
         self.twitch = None
-        scopes = [
-            AuthScope.CHAT_READ,
-            AuthScope.CHAT_EDIT,
-        ]  # TODO may need more as time goes on
+        scopes = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT, AuthScope.MODERATOR_MANAGE_ANNOUNCEMENTS]  # TODO may need more as time goes on
         try:
             self.twitch = await Twitch(app_id=self.config.twitch_auth, authenticate_app=False)
             helper = UserAuthenticationStorageHelper(self.twitch, scopes, auth_generator_func=self._token_gen)
@@ -63,10 +62,16 @@ class TwitchUtils:
             self.channel = user_info
             break
 
-    async def get_user_by_name(self, username: str):
+    async def refresh_user_by_member(self, member: Member):
+        user = await self.get_user_by_name(username=member.name, skip_cache=True)
+        if not user:
+            return
+        ui_refresh_user.trigger([user])
+
+    async def get_user_by_name(self, username: str, skip_cache: bool = False):
         username = username.lower()
         key = f"{username}.twitch.user"
-        if self.cache is not None:
+        if not skip_cache and self.cache is not None:
             user = self.cache.get(key=key, default=None)
             if user:
                 logger.debug(f"Fetched twitch user `{username}`")

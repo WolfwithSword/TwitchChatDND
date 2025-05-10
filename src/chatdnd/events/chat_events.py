@@ -8,3 +8,6 @@ chat_bot_on_connect = Event()
 
 chat_say_command = Event()
 chat_on_join_queue = Event()
+
+chat_on_party_modify = Event()
+chat_force_party_start_setup = Event()

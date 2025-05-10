@@ -32,7 +32,9 @@ def run_coroutine_sync(coroutine: Coroutine[Any, Any, T], timeout: float = 30) -
         new_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(new_loop)
         try:
-            return new_loop.run_until_complete(coroutine)
+            result = new_loop.run_until_complete(coroutine)
+            new_loop.run_until_complete(new_loop.shutdown_asyncgens())
+            return result
         finally:
             new_loop.close()
 
@@ -43,7 +45,9 @@ def run_coroutine_sync(coroutine: Coroutine[Any, Any, T], timeout: float = 30) -
 
     if threading.current_thread() is threading.main_thread():
         if not loop.is_running():
-            return loop.run_until_complete(coroutine)
+            result = loop.run_until_complete(coroutine)
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            return result
         else:
             with ThreadPoolExecutor() as pool:
                 future = pool.submit(run_in_new_loop)
