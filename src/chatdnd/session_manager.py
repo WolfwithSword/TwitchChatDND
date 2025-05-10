@@ -65,17 +65,19 @@ class SessionManager:
             on_party_update.trigger([self.session.get_party()])
             on_active_party_update.trigger()
 
-    def remove_member(self, member: Member):
+    def remove_member(self, member: Member, skip_db_update: bool = False):
         if member in self.session.party:
             self.session.party.remove(member)
-            on_party_update.trigger([self.session.get_party()])
-            on_active_party_update.trigger()
-            run_coroutine_sync(member_set_session_time([member]))
+            if not skip_db_update:
+                on_party_update.trigger([self.session.get_party()])
+                on_active_party_update.trigger()
+                run_coroutine_sync(member_set_session_time([member]))
+                run_coroutine_sync(member_inc_sessions(list(self.session.party)))
 
     def refresh_member(self, member: Member):
         if member not in self.session.party:
             return
-        self.remove_member(member)
+        self.remove_member(member, True)
         self.add_member(member)
 
     def end(self):

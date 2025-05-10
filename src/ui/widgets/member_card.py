@@ -116,7 +116,7 @@ class MemberCard(ctk.CTkFrame):
         if not user or user.display_name.upper() != self.member.name.upper():
             return
         member = run_coroutine_sync(create_or_get_member(name=user.display_name, pfp_url=user.profile_image_url))
-        if member:
+        if member and self.member.name == member.name and self.member.pfp_url != member.pfp_url:
             self.member = member
             self.setup_pfp()
             session_refresh_member.trigger([member])
