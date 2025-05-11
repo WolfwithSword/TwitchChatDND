@@ -1,7 +1,7 @@
-import tkinter as tk
 import customtkinter as ctk
 from custom_logger.logger import logger
 
+from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu
 from ui.widgets.member_card import MemberCard
 from twitch.chat import ChatController
 from chatdnd.events.chat_events import (
@@ -210,22 +210,14 @@ class HomeTab:
         user_label.pack(padx=(2, 6), pady=4)
         self.queue_label_var.set(value=f"{len(self.chat_ctrl.session_mgr.session.queue)} in Queue")
 
-        queue_context_menu = tk.Menu(
-            self.parent,
-            tearoff=0,
-            background="#2b2b2b",
-            foreground="#ffffff",
-            borderwidth=0,
-            activeborderwidth=0,
-            activebackground="#505050",
-            activeforeground="#ffffff",
-            relief="flat",
-            border=0,
-        )
-        queue_context_menu.add_command(label="Remove", command=lambda: self.remove_queue_user(name))
+        queue_context_menu = CTkContextMenu(self.parent)
+        queue_context_menu.add_command(label="Remove", command=lambda: self.remove_queue_user(name), padx=(4, 5))
 
         def show_queue_ctx_menu(event):
-            queue_context_menu.tk_popup(event.x_root, event.y_root)
+            try:
+                queue_context_menu.popup(event.x_root, event.y_root)
+            finally:
+                queue_context_menu.grab_release()
 
         user_label.bind("<Button-3>", show_queue_ctx_menu)
 

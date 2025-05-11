@@ -1,7 +1,6 @@
 import asyncio
 from io import BytesIO
 
-import tkinter as tk
 import customtkinter as ctk
 import requests
 from PIL import Image
@@ -17,6 +16,7 @@ from chatdnd.events.chat_events import chat_on_party_modify
 from chatdnd.events.ui_events import ui_refresh_user, ui_request_member_refresh, on_external_member_change
 from chatdnd.events.session_events import session_refresh_member
 from twitch.chat import ChatController
+from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu
 
 
 class MemberCard(ctk.CTkFrame):
@@ -54,18 +54,7 @@ class MemberCard(ctk.CTkFrame):
         name_label.grid(row=2, column=0, sticky="s", padx=5, pady=(2, 10))
         name_label.bind("<Button-1>", self.open_edit_popup)
 
-        self.context_menu = tk.Menu(
-            self,
-            tearoff=0,
-            background="#2b2b2b",
-            foreground="#ffffff",
-            borderwidth=0,
-            activeborderwidth=0,
-            activebackground="#505050",
-            activeforeground="#ffffff",
-            relief="flat",
-            border=0,
-        )
+        self.context_menu = CTkContextMenu(self)
 
         self.context_menu.add_command(label="Add to party", command=lambda: chat_on_party_modify.trigger([self.member, False]))
         self.context_menu.add_command(label="Kick from party", command=lambda: chat_on_party_modify.trigger([self.member, True]))
@@ -75,7 +64,10 @@ class MemberCard(ctk.CTkFrame):
         self.context_menu.add_command(label="Delete", command=self.delete_user)
 
     def show_ctx_menu(self, event):
-        self.context_menu.tk_popup(event.x_root, event.y_root)
+        try:
+            self.context_menu.popup(event.x_root, event.y_root)
+        finally:
+            self.context_menu.grab_release()
 
     def delete_user(self):
         chat_on_party_modify.trigger([self.member, True])
@@ -201,7 +193,6 @@ class MemberEditCard(ctk.CTkToplevel):
 
         num_sessions_label = ctk.CTkLabel(self, text=f"Number of Sessions: {self.member.num_sessions}")
         num_sessions_label.pack(pady=(20, 5))
-
 
     def _update_voicelist(self, choice):
         voices = self.tts[choice].get_voices()
