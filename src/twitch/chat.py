@@ -247,8 +247,7 @@ class ChatController:
         # TODO we also want a default pfp perhaps if non exists
         member = await create_or_get_member(name=cmd.user.display_name, pfp_url=user.profile_image_url)
         if member not in self.session_mgr.session.queue:
-            if (member.time_since_last_session and
-                datetime.datetime.now() - datetime.timedelta(minutes=10) < member.time_since_last_session):
+            if member.time_since_last_session and datetime.datetime.now() - datetime.timedelta(minutes=10) < member.time_since_last_session:
                 await cmd.reply(f"{member.name} was in a session too recently!")
                 return
             await cmd.reply(f"{member.name} added to queue")
@@ -270,9 +269,10 @@ class ChatController:
 
     async def _get_voices(self, cmd: ChatCommand):
         param = cmd.parameter
+        if param.upper().strip() == "11L":
+            param = SOURCE_11L.upper()
         if not param or param.upper().strip() not in [
             SOURCE_LOCAL.upper(),
-            "11L",
             SOURCE_11L.upper(),
         ]:
             await cmd.reply(
@@ -284,7 +284,7 @@ class ChatController:
         if param == SOURCE_LOCAL.upper():
             tts = LocalTTS(self.config, False)
             msg = tts.voice_list_message()
-        elif param in [SOURCE_11L.upper(), "11L"]:
+        elif param == SOURCE_11L.upper():
             msg = ElevenLabsTTS.voices_messages()
         if not msg:
             return
