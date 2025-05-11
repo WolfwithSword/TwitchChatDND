@@ -1,3 +1,4 @@
+import tkinter as tk
 import customtkinter as ctk
 from custom_logger.logger import logger
 
@@ -207,6 +208,43 @@ class HomeTab:
     def add_queue_user(self, name):
         user_label = ctk.CTkLabel(self.queue_list, text=name, anchor="e")
         user_label.pack(padx=(2, 6), pady=4)
+        self.queue_label_var.set(value=f"{len(self.chat_ctrl.session_mgr.session.queue)} in Queue")
+
+        queue_context_menu = tk.Menu(
+            self.parent,
+            tearoff=0,
+            background="#2b2b2b",
+            foreground="#ffffff",
+            borderwidth=0,
+            activeborderwidth=0,
+            activebackground="#505050",
+            activeforeground="#ffffff",
+            relief="flat",
+            border=0,
+        )
+        queue_context_menu.add_command(label="Remove", command=lambda: self.remove_queue_user(name))
+
+        def show_queue_ctx_menu(event):
+            queue_context_menu.tk_popup(event.x_root, event.y_root)
+
+        user_label.bind("<Button-3>", show_queue_ctx_menu)
+
+    def remove_queue_user(self, name):
+        in_queue = False
+        for member in list(self.chat_ctrl.session_mgr.session.queue):
+            if member.name == name:
+                self.chat_ctrl.session_mgr.session.queue.remove(member)
+                in_queue = True
+                break
+
+        if not in_queue:
+            return
+
+        for child in self.queue_list.winfo_children():
+            if child.cget("text") == name:
+                child.destroy()
+                break
+
         self.queue_label_var.set(value=f"{len(self.chat_ctrl.session_mgr.session.queue)} in Queue")
 
     def _update_party_limit(self, value):
