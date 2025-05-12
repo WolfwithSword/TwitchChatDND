@@ -6,6 +6,7 @@ from win11toast import notify
 
 import customtkinter as ctk
 from CTkListbox import *
+from CTkToolTip import CTkToolTip
 
 from helpers import TCDNDConfig as Config
 from helpers.utils import run_coroutine_sync, check_for_updates, get_resource_path
@@ -77,6 +78,8 @@ class SettingsTab:
         )
         logo_label.bind("<Enter>", lambda e: logo_label.configure(cursor="hand2"))
         logo_label.bind("<Leave>", lambda e: logo_label.configure(cursor=""))
+
+        CTkToolTip(logo_label, message="Open ChatDnD Page", delay = 0.3, corner_radius=50)
         ###########################
 
         row += 1

@@ -1,6 +1,5 @@
 import asyncio
 import customtkinter as ctk
-from helpers.utils import run_coroutine_sync
 from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu
 from ui.widgets.member_card import MemberCard
 from data.member import create_or_get_member, fetch_paginated_members

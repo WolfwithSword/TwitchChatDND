@@ -49,6 +49,11 @@ class Member(Base):
         return self.name > other.name
 
 
+async def members_end_session(members: List[Member]):
+    await member_set_session_time(members)
+    await member_inc_sessions(members)
+
+
 async def member_set_session_time(members: List[Member]):
     if not members:
         return

@@ -18,6 +18,7 @@ from chatdnd.events.ui_events import ui_refresh_user, ui_request_member_refresh,
 from chatdnd.events.session_events import session_refresh_member
 from twitch.chat import ChatController
 from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu, ContextMenuTypes
+from ui.widgets.CTkScrollableDropdown.ctk_scrollable_dropdown import CTkScrollableDropdown
 
 
 class MemberCard(ctk.CTkFrame):
@@ -89,8 +90,7 @@ class MemberCard(ctk.CTkFrame):
                 self.context_menu.add_separator()
                 self.context_menu.add_command(label="Delete", command=self.delete_user)
             else:
-                self.context_menu.geometry(f"+{-5000}+{-5000}")
-                children = self.context_menu.frame.winfo_children()
+                children = self.context_menu.prep_for_rewrite()
                 children[0].configure(command=lambda: chat_on_party_modify.trigger([self.member, False]))
                 children[1].configure(command=lambda: chat_on_party_modify.trigger([self.member, True]))
                 children[3].configure(command=lambda: ui_request_member_refresh.trigger([self.member]))
@@ -102,7 +102,7 @@ class MemberCard(ctk.CTkFrame):
 
     def delete_user(self):
         chat_on_party_modify.trigger([self.member, True])
-        run_coroutine_sync(delete_member(self.member))
+        asyncio.create_task(delete_member(self.member))
         on_external_member_change.trigger()
 
     def get_pfp_url_cache(self, url):
@@ -212,14 +212,17 @@ class MemberEditCard(ctk.CTkToplevel):
             valid_sources.remove(SOURCE_11L)
         self.tts_source_dropdown = ctk.CTkOptionMenu(
             self,
-            values=valid_sources,
             variable=self.tts_source_var,
-            command=self._update_voicelist,
+
         )
 
         voices = self.tts[current_source].get_voices()
+
+        self.tts_drop_frame = CTkScrollableDropdown(self.tts_source_dropdown, values=valid_sources, command=self._update_voicelist, height=300, width=160, alpha=1, button_height=30)
         self.tts_options = list(voices.keys())
-        self.tts_dropdown = ctk.CTkOptionMenu(self, values=self.tts_options)
+        self.tts_dropdown = ctk.CTkOptionMenu(self)
+
+        self.tts_voice_drop_frame = CTkScrollableDropdown(self.tts_dropdown, values=self.tts_options, width=425, height=385, alpha=1, justify="left", button_height=30)
 
         if self.member.preferred_tts_uid and self.member.preferred_tts_uid in voices.values():
             for k, v in voices.items():
@@ -229,8 +232,8 @@ class MemberEditCard(ctk.CTkToplevel):
         else:
             self.tts_dropdown.set(value=self.tts_options[0])
 
-        self.tts_source_dropdown.pack(pady=(5, 20))
-        self.tts_dropdown.pack(pady=(5, 20))
+        self.tts_source_dropdown.pack(padx=10, pady=(5, 20))
+        self.tts_dropdown.pack(padx=10, pady=(5, 20))
 
         self.test_button = ctk.CTkButton(self, text="Preview", command=self.test_tts)
         self.test_button.pack(pady=10)
@@ -244,7 +247,7 @@ class MemberEditCard(ctk.CTkToplevel):
     def _update_voicelist(self, choice):
         voices = self.tts[choice].get_voices()
         self.tts_options = list(voices.keys())
-        self.tts_dropdown.configure(values=self.tts_options)
+        self.tts_voice_drop_frame.configure(values=self.tts_options)
         if self.member.preferred_tts_uid and self.member.preferred_tts_uid in voices.values():
             for k, v in voices.items():
                 if v == self.member.preferred_tts_uid:
@@ -252,6 +255,9 @@ class MemberEditCard(ctk.CTkToplevel):
                     break
         else:
             self.tts_dropdown.set(value=self.tts_options[0])
+
+        self.tts_source_dropdown.set(value=choice)
+        self.tts_source_var.set(value=choice)
 
     def test_tts(self):
         voice_id = self.tts[self.tts_source_var.get()].get_voices()[self.tts_dropdown.get()]
