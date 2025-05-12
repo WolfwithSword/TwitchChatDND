@@ -8,7 +8,7 @@ SQLAlchemy==2.0.40
 aiosqlite==0.21.0
 pillow==11.2.1
 requests==2.32.3
-elevenlabs==1.57.0
+elevenlabs==1.58.1
 CTkListbox==1.5
 static-ffmpeg==2.13
 win11toast==0.35
