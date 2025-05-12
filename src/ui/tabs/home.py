@@ -219,7 +219,7 @@ class HomeTab:
                     self.context_menu.add_command(label="Remove", command=lambda: self.remove_queue_user(name), padx=(4, 5))
                 else:
                     children = self.context_menu.prep_for_rewrite()
-                    children[0].configure(command=lambda: self.remove_queue_user(name), padx=(4, 5))
+                    children[0].configure(command=lambda: self.remove_queue_user(name))
                 self.context_menu.type = ContextMenuTypes.QUEUE_ENTRY
                 self.parent.after(50, self.context_menu.popup(event.x_root, event.y_root))
             finally:
