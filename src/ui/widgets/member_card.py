@@ -4,6 +4,7 @@ from io import BytesIO
 import customtkinter as ctk
 import requests
 from PIL import Image
+from diskcache import Cache
 
 from custom_logger.logger import logger
 from data import Member
@@ -16,13 +17,25 @@ from chatdnd.events.chat_events import chat_on_party_modify
 from chatdnd.events.ui_events import ui_refresh_user, ui_request_member_refresh, on_external_member_change
 from chatdnd.events.session_events import session_refresh_member
 from twitch.chat import ChatController
-from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu
+from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu, ContextMenuTypes
 
 
 class MemberCard(ctk.CTkFrame):
 
     # fmt: skip
-    def __init__(self, parent, member: Member, chat_ctrl: ChatController, config: Config, width=160, height=200, textsize=12, *args, **kwargs):
+    def __init__(
+        self,
+        parent,
+        member: Member,
+        context_menu: CTkContextMenu,
+        chat_ctrl: ChatController,
+        config: Config,
+        width=160,
+        height=200,
+        textsize=12,
+        *args,
+        **kwargs,
+    ):
         super().__init__(parent, width=width, height=height, *args, **kwargs)
         self.member: Member = member
         self.chat_ctrl = chat_ctrl
@@ -32,9 +45,20 @@ class MemberCard(ctk.CTkFrame):
         self.width = width
         self.height = height
         self.textsize = textsize
+        self.context_menu = context_menu
         self.grid_propagate(False)
 
+        if config.getboolean(section="CACHE", option="enabled"):
+            cache_dir = config.get(section="CACHE", option="directory", fallback=None)
+            if not cache_dir:
+                self.cache = Cache()
+            else:
+                self.cache = Cache(directory=cache_dir)
+        else:
+            self.cache = None
+
         self.bg_label = None
+
         self.create_card()
 
         self.bind("<Button-1>", self.open_edit_popup)
@@ -54,18 +78,25 @@ class MemberCard(ctk.CTkFrame):
         name_label.grid(row=2, column=0, sticky="s", padx=5, pady=(2, 10))
         name_label.bind("<Button-1>", self.open_edit_popup)
 
-        self.context_menu = CTkContextMenu(self)
-
-        self.context_menu.add_command(label="Add to party", command=lambda: chat_on_party_modify.trigger([self.member, False]))
-        self.context_menu.add_command(label="Kick from party", command=lambda: chat_on_party_modify.trigger([self.member, True]))
-        self.context_menu.add_separator()
-        self.context_menu.add_command(label="Refresh", command=lambda: ui_request_member_refresh.trigger([self.member]))
-        self.context_menu.add_separator()
-        self.context_menu.add_command(label="Delete", command=self.delete_user)
-
     def show_ctx_menu(self, event):
         try:
-            self.context_menu.popup(event.x_root, event.y_root)
+            if self.context_menu.type != ContextMenuTypes.MEMBER_CARD:
+                self.context_menu.clear_contents()
+                self.context_menu.add_command(label="Add to party", command=lambda: chat_on_party_modify.trigger([self.member, False]))
+                self.context_menu.add_command(label="Kick from party", command=lambda: chat_on_party_modify.trigger([self.member, True]))
+                self.context_menu.add_separator()
+                self.context_menu.add_command(label="Refresh", command=lambda: ui_request_member_refresh.trigger([self.member]))
+                self.context_menu.add_separator()
+                self.context_menu.add_command(label="Delete", command=self.delete_user)
+            else:
+                self.context_menu.geometry(f"+{-5000}+{-5000}")
+                children = self.context_menu.frame.winfo_children()
+                children[0].configure(command=lambda: chat_on_party_modify.trigger([self.member, False]))
+                children[1].configure(command=lambda: chat_on_party_modify.trigger([self.member, True]))
+                children[3].configure(command=lambda: ui_request_member_refresh.trigger([self.member]))
+                children[5].configure(command=self.delete_user)
+            self.context_menu.type = ContextMenuTypes.MEMBER_CARD
+            self.context_menu.after(50, self.context_menu.popup(event.x_root, event.y_root))
         finally:
             self.context_menu.grab_release()
 
@@ -74,12 +105,28 @@ class MemberCard(ctk.CTkFrame):
         run_coroutine_sync(delete_member(self.member))
         on_external_member_change.trigger()
 
+    def get_pfp_url_cache(self, url):
+        response = None
+        key = f"{url}.member.pfp"
+        if self.cache:
+            response = self.cache.get(key=key, default=None)
+            logger.debug(f"Fetched {key} from cache")
+            if response:
+                return response
+
+        response = requests.get(url, timeout=10)
+        if response and self.cache:
+            self.cache.set(
+                key=key, expire=self.config.getint(section="CACHE", option="pfp_cache_expiry", fallback=7 * 24 * 60 * 60 * 2), value=response
+            )
+        return response
+
     def setup_pfp(self):
         if not self.winfo_exists():
             return
         try:
             url = self.member.pfp_url
-            response = requests.get(url, timeout=10)
+            response = self.get_pfp_url_cache(url)
             img_data = response.content
             img = Image.open(BytesIO(img_data))
 

@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from custom_logger.logger import logger
 
-from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu
+from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu, ContextMenuTypes
 from ui.widgets.member_card import MemberCard
 from twitch.chat import ChatController
 from chatdnd.events.chat_events import (
@@ -15,10 +15,11 @@ from chatdnd.events.ui_events import ui_force_home_party_update
 
 
 class HomeTab:
-    def __init__(self, parent, chat_ctrl: ChatController):
+    def __init__(self, parent, chat_ctrl: ChatController, context_menu: CTkContextMenu):
         self.parent = parent
         self.config = chat_ctrl.config
         self.chat_ctrl = chat_ctrl
+        self.context_menu = context_menu
 
         self.parent.grid_columnconfigure(1, weight=0)
         self.parent.grid_columnconfigure((0, 2), weight=1)
@@ -149,6 +150,7 @@ class HomeTab:
             member_card = MemberCard(
                 self._party_frame,
                 member,
+                self.context_menu,
                 self.chat_ctrl,
                 self.config,
                 width=130,
@@ -210,14 +212,19 @@ class HomeTab:
         user_label.pack(padx=(2, 6), pady=4)
         self.queue_label_var.set(value=f"{len(self.chat_ctrl.session_mgr.session.queue)} in Queue")
 
-        queue_context_menu = CTkContextMenu(self.parent)
-        queue_context_menu.add_command(label="Remove", command=lambda: self.remove_queue_user(name), padx=(4, 5))
-
         def show_queue_ctx_menu(event):
             try:
-                queue_context_menu.popup(event.x_root, event.y_root)
+                if self.context_menu.type != ContextMenuTypes.QUEUE_ENTRY:
+                    self.context_menu.clear_contents()
+                    self.context_menu.add_command(label="Remove", command=lambda: self.remove_queue_user(name), padx=(4, 5))
+                else:
+                    self.context_menu.geometry(f"+{-5000}+{-5000}")
+                    children = self.context_menu.frame.winfo_children()
+                    children[0].configure(command=lambda: self.remove_queue_user(name), padx=(4, 5))
+                self.context_menu.type = ContextMenuTypes.QUEUE_ENTRY
+                self.parent.after(50, self.context_menu.popup(event.x_root, event.y_root))
             finally:
-                queue_context_menu.grab_release()
+                self.context_menu.grab_release()
 
         user_label.bind("<Button-3>", show_queue_ctx_menu)
 
