@@ -179,14 +179,14 @@ class ChatController:
     def send_message(self, text: str, as_announcement: bool = False):
         logger.debug(f"Sending chat msg: {text}")
         if as_announcement:
-            asyncio.run_coroutine_threadsafe(
+            asyncio.create_task(
                 self.twitch.send_chat_announcement(self.twitch_utils.channel.id, self.twitch_utils.channel.id, text),
-                asyncio.get_event_loop(),
+                # asyncio.get_event_loop(),
             )
         else:
-            asyncio.run_coroutine_threadsafe(
+            asyncio.create_task(
                 self.chat.send_message(text=text, room=self.twitch_utils.channel.display_name),
-                asyncio.get_event_loop(),
+                # asyncio.get_event_loop(),
             )
 
     def open_session(self):

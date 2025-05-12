@@ -1,6 +1,6 @@
 from enum import Enum, auto
 import sys
-from typing import Tuple
+from typing import List, Tuple
 from customtkinter import CTkToplevel, CTkFrame, CTkButton
 
 
@@ -86,6 +86,10 @@ class CTkContextMenu(CTkToplevel):
         self.geometry(f"+{-5000}+{-5000}")
         for child in self.frame.winfo_children():
             child.destroy()
+
+    def prep_for_rewrite(self) -> List:
+        self.geometry(f"+{-5000}+{-5000}")
+        return self.frame.winfo_children()
 
     def add_command(
         self,

@@ -1,14 +1,14 @@
+import asyncio
 import random
 
 from data import Session, Member, SessionState
-from data.member import member_set_session_time, member_inc_sessions
+from data.member import members_end_session
 from chatdnd.events.session_events import on_party_update, on_active_party_update, session_refresh_member
 from chatdnd.events.web_events import on_overlay_open
 from chatdnd.events.chat_events import chat_on_party_modify, chat_force_party_start_setup
 from chatdnd.events.ui_events import ui_request_floating_notif, ui_force_home_party_update
 
 from custom_logger.logger import logger
-from helpers.utils import run_coroutine_sync
 from ui.widgets.CTkFloatingNotifications.notification_type import NotifyType
 
 
@@ -71,8 +71,7 @@ class SessionManager:
             if not skip_db_update:
                 on_party_update.trigger([self.session.get_party()])
                 on_active_party_update.trigger()
-                run_coroutine_sync(member_set_session_time([member]))
-                run_coroutine_sync(member_inc_sessions(list(self.session.party)))
+                asyncio.create_task(members_end_session([member]))
 
     def refresh_member(self, member: Member):
         if member not in self.session.party:
@@ -81,10 +80,7 @@ class SessionManager:
         self.add_member(member)
 
     def end(self):
-        run_coroutine_sync(member_set_session_time(list(self.session.party)))
-
-        # does not cover when kicked from party, as we reuse remove for refreshing
-        run_coroutine_sync(member_inc_sessions(list(self.session.party)))
+        asyncio.create_task(members_end_session(list(self.session.party)))
         self.session.clear()
         self.session.state = SessionState.NONE
         on_party_update.trigger([self.session.get_party()])
