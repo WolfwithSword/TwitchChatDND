@@ -1,6 +1,13 @@
+from enum import Enum, auto
 import sys
 from typing import Tuple
 from customtkinter import CTkToplevel, CTkFrame, CTkButton
+
+
+class ContextMenuTypes(Enum):
+    NONE = auto()
+    MEMBER_CARD = auto()
+    QUEUE_ENTRY = auto()
 
 
 class CTkContextMenu(CTkToplevel):
@@ -11,14 +18,17 @@ class CTkContextMenu(CTkToplevel):
     """
 
     def __init__(self, master=None, corner_radius=12, border_width=1, **kwargs):
-
         super().__init__(takefocus=1)
-
-        self.focus()
+        # super().__init__(master=master)
         self.master_window = master
         self.corner = corner_radius
         self.border = border_width
         self.hidden = True
+        self.withdraw()
+        self.update_idletasks()
+        self.resizable(width=False, height=False)
+
+        self.type = ContextMenuTypes.NONE
 
         # add transparency to suitable platforms
         if sys.platform.startswith("win"):
@@ -36,7 +46,7 @@ class CTkContextMenu(CTkToplevel):
             self.withdraw()
 
         self.frame = CTkFrame(self, bg_color=self.transparent_color, corner_radius=self.corner, border_width=self.border, **kwargs)
-        self.frame.pack(expand=True, fill="both", padx=0, pady=(4,4))
+        self.frame.pack(expand=True, fill="both", padx=0, pady=(4, 4))
 
         self.master.bind_all("<ButtonPress>", lambda event: self._withdraw_off(), add="+")
         self.master.bind_all("<Button-1>", lambda event: self._withdraw_off(), add="+")  # hide menu when clicked outside
@@ -45,11 +55,8 @@ class CTkContextMenu(CTkToplevel):
         self.master.bind_all("<Key-Escape>", lambda event: self._withdraw(), add="+")
         self.master.bind("<Configure>", lambda event: self._withdraw())  # hide menu when master window is changed
 
-        self.resizable(width=False, height=False)
         self.transient(self.master_window)
-
         self.update_idletasks()
-
         self.withdraw()
 
     def _withdraw(self):
@@ -67,12 +74,18 @@ class CTkContextMenu(CTkToplevel):
         self.y = y
         self.deiconify()
         self.focus()
+        self.update_idletasks()
         # self.geometry(f"+{self.x}+{self.y}")
         width = self.frame.winfo_reqwidth()
         height = self.frame.winfo_reqheight()
         self.geometry(f"{width-56}x{height+12}+{x}+{y}")  # TODO sizing is weird
-
         self.hidden = False
+
+    def clear_contents(self):
+        # self._withdraw()
+        self.geometry(f"+{-5000}+{-5000}")
+        for child in self.frame.winfo_children():
+            child.destroy()
 
     def add_command(
         self,

@@ -11,96 +11,58 @@ class TCDNDConfig(configparser.ConfigParser):
         super().__init__()
         self.path = "./config.ini"
 
+    def _setup_section(self, section: str) -> bool:
+        _needs_init = False
+        if not self.has_section(section):
+            _needs_init = True
+            self.add_section(section)
+        return _needs_init
+
+    def _setup_option(self, section: str, option: str, value: str) -> bool:
+        _needs_init = False
+        if not self.get(section=section, option=option, fallback=None):
+            _needs_init = True
+            self.set(section=section, option=option, value=value)
+        return _needs_init
+
     def setup(self, path: str):
         self.path = path
         self.read(path)
 
+        _defaults = {
+            "BOT": {
+                "prefix": "!",
+                "speak_command": "say",
+                "join_command": "join",
+                "voices_command": "voices",
+                "voice_command": "voice",
+                "help_command": "dndhelp",
+                "voice_user_cooldown": "10",
+                "voices_user_cooldown": "15",
+                "voices_global_cooldown": "10",
+                "speak_global_cooldown": "1",
+                "speak_user_cooldown": "10",
+                "join_user_cooldown": "30",
+                "help_global_cooldown": "30",
+            },
+            "SERVER": {"port": "5000"},
+            "CACHE": {
+                "enabled": "true",
+                "cache_expiry": str(7 * 24 * 60 * 60),  # 1 week
+                "tts_cache_expiry": str(7 * 24 * 60 * 60 * 4 * 3),  # 3 months
+                "pfp_cache_expiry": str(7 * 24 * 60 * 60 * 2),  # 2 weeks
+            },
+            "DND": {"party_size": "4"},
+            "ELEVENLABS": {"api_key": "", "usage_warning": "500"},
+        }
+
         # Init config.ini file
         needs_init = False
-        if not self.has_section("BOT"):
-            needs_init = True
-            self.add_section("BOT")
-        if not self.get(section="BOT", option="prefix", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="prefix", value="!")
-        if not self.get(section="BOT", option="speak_command", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="speak_command", value="say")
-        if not self.get(section="BOT", option="join_command", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="join_command", value="join")
-        if not self.get(section="BOT", option="voices_command", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="voices_command", value="voices")
-        if not self.get(section="BOT", option="voice_command", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="voice_command", value="voice")
-        if not self.get(section="BOT", option="help_command", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="help_command", value="dndhelp")
 
-        if not self.get(section="BOT", option="voice_user_cooldown", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="voice_user_cooldown", value="10")
-        if not self.get(section="BOT", option="voices_user_cooldown", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="voices_user_cooldown", value="15")
-        if not self.get(section="BOT", option="voices_global_cooldown", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="voices_global_cooldown", value="10")
-        if not self.get(section="BOT", option="speak_global_cooldown", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="speak_global_cooldown", value="1")
-        if not self.get(section="BOT", option="speak_user_cooldown", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="speak_user_cooldown", value="10")
-        if not self.get(section="BOT", option="join_user_cooldown", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="join_user_cooldown", value="30")
-        if not self.get(section="BOT", option="help_global_cooldown", fallback=None):
-            needs_init = True
-            self.set(section="BOT", option="help_global_cooldown", value="30")
-
-        if not self.has_section("SERVER"):
-            needs_init = True
-            self.add_section("SERVER")
-        if not self.get(section="SERVER", option="port", fallback=None):
-            needs_init = True
-            self.set(section="SERVER", option="port", value=str(5000))
-
-        if not self.has_section("CACHE"):
-            needs_init = True
-            self.add_section("CACHE")
-        if not self.has_option(section="CACHE", option="enabled"):
-            needs_init = True
-            self.set(section="CACHE", option="enabled", value="true")
-        if not self.has_option(section="CACHE", option="cache_expiry"):
-            needs_init = True
-            self.set(section="CACHE", option="cache_expiry", value=str(7 * 24 * 60 * 60))
-        if not self.has_option(section="CACHE", option="tts_cache_expiry"):
-            needs_init = True
-            self.set(
-                section="CACHE",
-                option="tts_cache_expiry",
-                value=str(7 * 24 * 60 * 60 * 4 * 3),
-            )
-
-        if not self.has_section("DND"):
-            needs_init = True
-            self.add_section("DND")
-        if not self.has_option(section="DND", option="party_size"):
-            needs_init = True
-            self.set(section="DND", option="party_size", value=str(4))
-
-        if not self.has_section("ELEVENLABS"):
-            needs_init = True
-            self.add_section("ELEVENLABS")
-        if not self.has_option(section="ELEVENLABS", option="api_key"):
-            needs_init = True
-            self.set(section="ELEVENLABS", option="api_key", value="")
-        if not self.has_option(section="ELEVENLABS", option="usage_warning"):
-            needs_init = True
-            self.set(section="ELEVENLABS", option="usage_warning", value="500")
+        for section in list(_defaults.keys()):
+            needs_init = needs_init or self._setup_section(section)
+            for key, value in _defaults[section].items():
+                needs_init = needs_init or self._setup_option(section=section, option=key, value=value)
 
         if needs_init:
             self.write_updates()

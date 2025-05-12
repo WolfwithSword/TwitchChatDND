@@ -13,6 +13,7 @@ from ui.tabs.settings import SettingsTab
 from ui.tabs.users import UsersTab
 from ui.widgets import CTkScrollableTabView
 from ui.widgets.CTkFloatingNotifications import NotificationManager, NotifyType
+from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
@@ -53,6 +54,8 @@ class DesktopApp(ctk.CTk):
         self.notification_manager = NotificationManager(self)
         ui_request_floating_notif.addListener(self._show_floating_notif)
 
+        self.context_menu = CTkContextMenu(self)
+
         self._setup_tabs()
 
     def _setup_tabs(self):
@@ -62,8 +65,8 @@ class DesktopApp(ctk.CTk):
         settings_tab = self.tabview.add("Settings", scrollable=True)
 
         # TODO - see if we even need to pass in chat_ctrl, or if we can purely use my Events and triggers
-        home = HomeTab(home_tab, self.chat_ctrl)
-        users = UsersTab(users_tab, self.chat_ctrl)
+        home = HomeTab(home_tab, self.chat_ctrl, self.context_menu)
+        users = UsersTab(users_tab, self.chat_ctrl, self.context_menu)
         settings = SettingsTab(settings_tab, self.config, self.twitch_utils)
         assert all([home, users, settings])
 

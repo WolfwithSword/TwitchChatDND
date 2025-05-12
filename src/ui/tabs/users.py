@@ -1,6 +1,7 @@
 import asyncio
 import customtkinter as ctk
 from helpers.utils import run_coroutine_sync
+from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu
 from ui.widgets.member_card import MemberCard
 from data.member import create_or_get_member, fetch_paginated_members
 from chatdnd.events.ui_events import on_external_member_change
@@ -8,14 +9,15 @@ from twitch.chat import ChatController
 
 
 class UsersTab:
-    def __init__(self, parent, chat_ctrl: ChatController):
+    def __init__(self, parent, chat_ctrl: ChatController, context_menu: CTkContextMenu):
         self.parent = parent
         self.chat_ctrl = chat_ctrl
+        self.context_menu = context_menu
 
         self.load_members_lock = asyncio.Lock()
 
         self.page = 1
-        self.per_page = 6 * 4
+        self.per_page = 6 * 3
         self.name_filter = ""
         self.members_list_frame = ctk.CTkScrollableFrame(self.parent)
         self.members_list_frame.pack(padx=20, pady=20, fill="both", expand=True)
@@ -79,14 +81,14 @@ class UsersTab:
                 widget.destroy()
 
             try:
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.1)
                 members = await fetch_paginated_members(self.page, self.per_page, name_filter=self.name_filter)
 
-                new_cards = list()
+                new_cards = [
+                    MemberCard(self.members_list_frame, member, self.context_menu, self.chat_ctrl, self.chat_ctrl.config) for member in members
+                ]
+
                 columns = 6
-                for member in members:
-                    member_card = MemberCard(self.members_list_frame, member, self.chat_ctrl, self.chat_ctrl.config)
-                    new_cards.append(member_card)
                 new_cards = sorted(new_cards[:], key=lambda x: x.member.name)
                 for index, card in enumerate(new_cards):
                     row = index // columns
@@ -111,11 +113,13 @@ class UsersTab:
         self.schedule_load_members()
 
     def add_by_name(self, event=None):
-        if not self.add_var.get():
-            return
-        user = run_coroutine_sync(self.chat_ctrl.twitch_utils.get_user_by_name(username=self.add_var.get()))
-        if not user:
-            return
-        member = run_coroutine_sync(create_or_get_member(name=user.display_name, pfp_url=user.profile_image_url))
-        if member:
-            self.schedule_load_members()
+        async def _run():
+            if not self.add_var.get():
+                return
+            user = await self.chat_ctrl.twitch_utils.get_user_by_name(username=self.add_var.get())
+            if not user:
+                return
+            member = await create_or_get_member(name=user.display_name, pfp_url=user.profile_image_url)
+            if member:
+                self.schedule_load_members()
+        asyncio.create_task(_run())
