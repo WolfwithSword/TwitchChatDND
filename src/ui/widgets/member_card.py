@@ -164,6 +164,10 @@ class MemberCard(ctk.CTkFrame):
         self.member = run_coroutine_sync(fetch_member(name=self.member.name))
         MemberEditCard(self.member, self.config)
 
+    def destroy(self):
+        ui_refresh_user.removeListener(self._refresh_member)
+        super().destroy()
+
 
 class MemberEditCard(ctk.CTkToplevel):
     open_popup = None

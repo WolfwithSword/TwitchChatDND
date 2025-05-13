@@ -1,5 +1,6 @@
 import asyncio
 import customtkinter as ctk
+from CTkToolTip import CTkToolTip
 from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu
 from ui.widgets.member_card import MemberCard
 from data.member import create_or_get_member, fetch_paginated_members
@@ -59,6 +60,9 @@ class UsersTab:
         self.load_members_task = asyncio.create_task(self.load_members())
         on_external_member_change.addListener(self.schedule_load_members)
 
+        self.prev_tooltip = CTkToolTip(self.prev_button, message=f"{self.page if self.page == 1 else self.page - 1}", delay=0.3, corner_radius=50)
+        self.next_tooltip = CTkToolTip(self.next_button, message=f"{self.page + 1}", delay=0.3, corner_radius=50)
+
     def update_search_filter(self, *args):
         self.name_filter = self.search_var.get()
         self.page = 1
@@ -101,6 +105,8 @@ class UsersTab:
     def update_pagination_buttons(self):
         self.prev_button.configure(state="normal" if self.page > 1 else "disabled")
         self.next_button.configure(state=("normal" if len(self.members_list_frame.winfo_children()) == self.per_page else "disabled"))
+        self.prev_tooltip.configure(message=f"{self.page if self.page == 1 else self.page - 1}")
+        self.next_tooltip.configure(message=f"{self.page + 1 if len(self.members_list_frame.winfo_children()) == self.per_page else self.page}")
 
     def previous_page(self):
         if self.page > 1:
@@ -121,4 +127,5 @@ class UsersTab:
             member = await create_or_get_member(name=user.display_name, pfp_url=user.profile_image_url)
             if member:
                 self.schedule_load_members()
+
         asyncio.create_task(_run())
