@@ -4,11 +4,11 @@ twitchAPI==4.4.0
 customtkinter==5.2.2
 CTkToolTip==0.8
 Quart==0.20.0
-SQLAlchemy==2.0.40
+SQLAlchemy==2.0.41
 aiosqlite==0.21.0
 pillow==11.2.1
 requests==2.32.3
-elevenlabs==1.58.1
+elevenlabs==1.59.0
 CTkListbox==1.5
 static-ffmpeg==2.13
 win11toast==0.35
