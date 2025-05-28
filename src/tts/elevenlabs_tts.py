@@ -254,7 +254,7 @@ class ElevenLabsTTS(TTS):
             except Exception:
                 on_elevenlabs_connect.trigger([False])  # needed?
                 return
-            audio = list(client.generate(text=text, voice=voice_id, model=MODEL))
+            audio = list(client.text_to_speech.convert(text=text, voice_id=voice_id, model_id=MODEL))
             self.cache.set(
                 key=key,
                 expire=self.config.getint(
