@@ -19,12 +19,6 @@ class LocalTTS(TTS):
     def __init__(self, config: Config, full_instance: bool = True):
         super().__init__(config=None)
 
-        self.sample_rate = 22050  # PyTTS default
-        self.bits_per_sample = 16
-        self.num_channels = 1
-
-        self.max_chunk_size = 1024 * 8 * 8 * 2 * 2  # 256kb
-
         if full_instance:
             engine = pyttsx4.init()
             db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=SOURCE_LOCAL))
@@ -35,7 +29,7 @@ class LocalTTS(TTS):
     @property
     def voices(self) -> dict:
         d = {}
-        _voices = run_coroutine_sync(fetch_voices(source="local"))
+        _voices = run_coroutine_sync(fetch_voices(source=SOURCE_LOCAL))
         for v in _voices:
             d.setdefault(f"{v.name}", v.uid)
         return d

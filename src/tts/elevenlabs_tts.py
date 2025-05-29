@@ -31,6 +31,8 @@ MODEL = "eleven_flash_v2_5"  #'eleven_monolingual_v1'
 
 
 class ElevenLabsTTS(TTS):
+    sample_rate = int(FORMAT.rsplit("_", maxsplit=1)[-1])
+
     def __init__(self, config: Config, full_instance: bool = False):
         super().__init__(config=None)
         self.full_instance = full_instance
@@ -41,12 +43,6 @@ class ElevenLabsTTS(TTS):
             request_elevenlabs_connect.addListener(self.setup)
             self.setup()
             on_elevenlabs_test_speak.addListener(self.test_speak)
-
-        self.sample_rate = int(FORMAT.rsplit("_", maxsplit=1)[-1])
-        self.bits_per_sample = 16
-        self.num_channels = 1
-
-        self.max_chunk_size = 1024 * 8 * 8 * 2 * 2  # 256kb
 
         if config.getboolean(section="CACHE", option="enabled"):
             # Caching in general, but for here, it's specific to API results
@@ -255,15 +251,16 @@ class ElevenLabsTTS(TTS):
                 on_elevenlabs_connect.trigger([False])  # needed?
                 return
             audio = list(client.text_to_speech.convert(text=text, voice_id=voice_id, model_id=MODEL))
-            self.cache.set(
-                key=key,
-                expire=self.config.getint(
-                    section="CACHE",
-                    option="tts_cache_expiry",
-                    fallback=7 * 24 * 60 * 60 * 4 * 3,
-                ),
-                value=list(audio),
-            )
+            if self.cache:
+                self.cache.set(
+                    key=key,
+                    expire=self.config.getint(
+                        section="CACHE",
+                        option="tts_cache_expiry",
+                        fallback=7 * 24 * 60 * 60 * 4 * 3,
+                    ),
+                    value=list(audio),
+                )
             audio = iter(audio)
 
             user_subscription = client.user.get_subscription()

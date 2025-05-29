@@ -14,3 +14,7 @@ static-ffmpeg==2.13
 win11toast==0.35
 alembic==1.16.1
 packaging==25.0
+chatterbox-tts==0.1
+-i https://download.pytorch.org/whl/cu126
+torch==2.6.0+cu126
+torchaudio==2.6.0

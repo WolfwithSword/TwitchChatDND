@@ -7,7 +7,7 @@ from data.base import Base
 from db import async_session
 
 from custom_logger.logger import logger
-from helpers.constants import SOURCES, SOURCE_11L, SOURCE_LOCAL
+from helpers.constants import SOURCES, SOURCE_11L, SOURCE_LOCAL, SOURCE_CHATTER
 
 
 class Voice(Base):
@@ -30,7 +30,7 @@ class Voice(Base):
         if source not in SOURCES:
             return None
         self.name: str = name
-        self.uid: str = uid
+        self.uid: str = uid # For SOURCE_CHATTER, is filepath of sample
         self.source: str = source
 
     def __eq__(self, other):
@@ -121,9 +121,13 @@ async def fetch_voices(source: str = None, limit: int = 100) -> list[Voice]:
         query = query.limit(limit)
         result = await session.execute(query)
         res = result.scalars().all()
-        if not res and source == "elevenlabs":
+        if not res and source == SOURCE_11L:
             logger.info("Adding default ElevenLabs voice 'Will'")
             v = await _upsert_voice(name="Will", uid="bIHbv24MWmeRgasZH58o", source=SOURCE_11L)
+            return [v]
+        elif not res and source == SOURCE_CHATTER:
+            logger.info("Adding default ChatterBox voice")
+            v = await _upsert_voice(name='Chatterbox Default', uid='cbtts.default', source=SOURCE_CHATTER)
             return [v]
         return res
 
