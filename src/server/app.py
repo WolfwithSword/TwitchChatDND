@@ -6,10 +6,10 @@ from quart import Quart, websocket, send_from_directory
 
 from data import Member
 from data.voices import fetch_voice
-from tts import LocalTTS, ElevenLabsTTS
+from tts import instances as tts_instances
 from helpers import TCDNDConfig as Config
 from helpers.utils import get_resource_path
-from helpers.constants import SOURCE_11L, SOURCE_LOCAL
+from helpers.constants import SOURCE_11L, SOURCE_LOCAL, SOURCE_CHATTER
 from custom_logger.logger import logger
 
 from chatdnd.events.chat_events import chat_say_command
@@ -62,10 +62,7 @@ class ServerApp:
     def __init__(self, config: Config):
         self.app = Quart(__name__)
         self.config = config
-        self.tts = {
-            SOURCE_LOCAL: LocalTTS(config),
-            SOURCE_11L: ElevenLabsTTS(config, full_instance=True),
-        }
+        self.tts = tts_instances
         self._setup_routes()
 
         self._party: set[Member] = set()

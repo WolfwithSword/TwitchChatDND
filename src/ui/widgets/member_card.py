@@ -10,9 +10,9 @@ from custom_logger.logger import logger
 from data import Member
 from data.member import create_or_get_member, fetch_member, update_tts, delete_member
 from helpers import TCDNDConfig as Config
-from helpers.constants import SOURCE_11L, SOURCE_LOCAL, SOURCES
+from helpers.constants import SOURCE_11L, SOURCE_LOCAL, SOURCES, SOURCE_CHATTER
 from helpers.utils import run_coroutine_sync
-from tts import ElevenLabsTTS, LocalTTS
+from tts import instances as tts_instances
 from chatdnd.events.chat_events import chat_on_party_modify
 from chatdnd.events.ui_events import ui_refresh_user, ui_request_member_refresh, on_external_member_change
 from chatdnd.events.session_events import session_refresh_member
@@ -186,10 +186,7 @@ class MemberEditCard(ctk.CTkToplevel):
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self.close_popup)
 
-        self.tts = {
-            SOURCE_LOCAL: LocalTTS(self.config, False),
-            SOURCE_11L: ElevenLabsTTS(self.config),
-        }
+        self.tts = tts_instances
 
         self.attributes("-topmost", True)
 

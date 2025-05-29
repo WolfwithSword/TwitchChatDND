@@ -9,6 +9,7 @@ from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 
 from initialize import args
+from tts import initialize_tts
 
 from twitch.utils import TwitchUtils
 from twitch.chat import ChatController
@@ -16,6 +17,7 @@ from twitch.chat import ChatController
 import helpers.event as _event_module
 from helpers import TCDNDConfig as Config
 from helpers.utils import check_for_updates
+from helpers.constants import SOURCES
 from ui.app import DesktopApp
 from server.app import ServerApp
 
@@ -74,6 +76,9 @@ cache_dir = os.path.join(cwd, ".tcdnd-cache/")
 
 config = Config()
 config.setup(config_path)
+
+for source in SOURCES:
+    initialize_tts(source, config)
 
 if not config.has_option(section="CACHE", option="directory"):
     config.set(section="CACHE", option="directory", value=cache_dir)
