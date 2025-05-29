@@ -74,7 +74,7 @@ class ChatterBoxTTS(TTS):
         else:
             wav = self.model.generate(
                 text,
-                audio_prompt_path="C:\\Users\\WolfwithSword\\Desktop\\cottoneyedharley.mp3",
+                #audio_prompt_path="C:\\Users\\WolfwithSword\\Desktop\\something.mp3",
                 exaggeration=0.62,
                 temperature=0.75,
                 cfg_weight=0.43)
