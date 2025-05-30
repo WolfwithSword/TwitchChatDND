@@ -1,4 +1,6 @@
 import os
+import sys
+import subprocess
 import argparse
 import static_ffmpeg
 
@@ -15,3 +17,13 @@ from custom_logger.logger import logger
 logger.info("Setting up ffmpeg...")
 static_ffmpeg.add_paths()
 logger.info("Done setting up ffmpeg")
+
+# Try to hide consoles from subproccesses
+if sys.platform == "win32":
+    _original_popen = subprocess.Popen
+
+    def silent_popen(*args, **kwargs):
+        kwargs.setdefault("creationflags", subprocess.CREATE_NO_WINDOW)
+        return _original_popen(*args, **kwargs)
+
+    subprocess.Popen = silent_popen
