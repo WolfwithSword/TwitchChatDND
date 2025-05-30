@@ -1,5 +1,8 @@
+from logging import getLogger
 import struct
-from helpers import TCDNDConfig as Config
+from helpers.constants import TTS_SOURCE
+
+logger = getLogger("ChatDND")
 
 
 def create_wav_header(sample_rate, bits_per_sample, num_channels, data_size):
@@ -27,15 +30,15 @@ def create_wav_header(sample_rate, bits_per_sample, num_channels, data_size):
 
 
 class TTS:
-    source_type: str = ""
+    source_type: TTS_SOURCE
     voices: dict = dict()
     sample_rate = 22050
     bits_per_sample = 16
     num_channels = 1
     max_chunk_size = 1024 * 8 * 8 * 2 * 2  # 256kb
 
-    def __init__(self, config: Config):
-        self.config = config
+    def __init__(self):
+        logger.debug(f"TTS Instance created of type: {self.source_type}")
 
     def get_voices(self) -> dict:
         return self.voices

@@ -7,11 +7,11 @@ from twitchAPI.twitch import Twitch
 from twitchAPI.oauth import UserAuthenticationStorageHelper, CodeFlow
 from twitchAPI.type import AuthScope
 
-from diskcache import Cache
-
 from data.member import Member
-from helpers import TCDNDConfig as Config
 from custom_logger.logger import logger
+
+from helpers.utils import try_get_cache
+from helpers.instance_manager import get_config
 
 from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_event
 from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_refresh_user, ui_request_member_refresh
@@ -19,19 +19,9 @@ from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_re
 
 class TwitchUtils:
 
-    def __init__(self, config: Config, cache_dir: str = ""):
+    def __init__(self):
         self.twitch: Twitch = None
-        self.config: Config = config
         self.channel: TwitchUser = None
-
-        if config.getboolean(section="CACHE", option="enabled"):
-            # Caching in general, but for here, it's specific to API results
-            if not cache_dir:
-                self.cache = Cache()
-            else:
-                self.cache = Cache(directory=cache_dir)
-        else:
-            self.cache = None
 
         ui_settings_twitch_auth_update_event.addListener(self.start)
         ui_request_member_refresh.addListener(self.refresh_user_by_member)
@@ -47,8 +37,9 @@ class TwitchUtils:
     async def start(self):
         self.twitch = None
         scopes = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT, AuthScope.MODERATOR_MANAGE_ANNOUNCEMENTS]  # TODO may need more as time goes on
+        config = get_config("default")
         try:
-            self.twitch = await Twitch(app_id=self.config.twitch_auth, authenticate_app=False)
+            self.twitch = await Twitch(app_id=config.twitch_auth, authenticate_app=False)
             helper = UserAuthenticationStorageHelper(self.twitch, scopes, auth_generator_func=self._token_gen)
             await helper.bind()
         except Exception as e:
@@ -71,8 +62,10 @@ class TwitchUtils:
     async def get_user_by_name(self, username: str, skip_cache: bool = False):
         username = username.lower()
         key = f"{username}.twitch.user"
-        if not skip_cache and self.cache is not None:
-            user = self.cache.get(key=key, default=None)
+        config = get_config("default")
+        cache = try_get_cache("default")
+        if not skip_cache and cache:
+            user = cache.get(key=key, default=None)
             if user:
                 logger.debug(f"Fetched twitch user `{username}`")
                 return user
@@ -83,10 +76,10 @@ class TwitchUtils:
             logger.warning(f"Exception with username {username}, {e}")
             user = None
         if user and user.display_name.lower() == username.lower():
-            if self.cache is not None:
-                self.cache.set(
+            if cache:
+                cache.set(
                     key=key,
-                    expire=self.config.getint(
+                    expire=config.getint(
                         section="CACHE",
                         option="cache_expiry",
                         fallback=7 * 24 * 60 * 60,

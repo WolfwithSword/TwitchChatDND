@@ -5,9 +5,8 @@ import pyttsx4
 
 from tts.tts import TTS, create_wav_header
 
-from helpers import TCDNDConfig as Config
 from helpers.utils import run_coroutine_sync
-from helpers.constants import SOURCE_LOCAL
+from helpers.constants import TTS_SOURCE
 
 from data.voices import _upsert_voice, fetch_voices, get_all_voice_ids
 
@@ -16,25 +15,24 @@ from data.voices import _upsert_voice, fetch_voices, get_all_voice_ids
 
 
 class LocalTTS(TTS):
-    source_type = SOURCE_LOCAL
-    def __init__(self, config: Config, full_instance: bool = True):
-        super().__init__(config=None)
+    source_type = TTS_SOURCE.SOURCE_LOCAL
+    def __init__(self):
+        super().__init__()
 
-        if full_instance:
-            def _init_values():
-                engine = pyttsx4.init()
-                db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=self.source_type))
-                for v in engine.getProperty("voices"):
-                    if v.id not in db_voice_ids:
-                        run_coroutine_sync(_upsert_voice(name=v.name, uid=v.id, source=self.source_type))
-            thread = threading.Thread(target=_init_values)
-            thread.daemon = True
-            thread.start()
+        def _init_values():
+            engine = pyttsx4.init()
+            db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=self.source_type))
+            for v in engine.getProperty("voices"):
+                if v.id not in db_voice_ids:
+                    run_coroutine_sync(_upsert_voice(name=v.name, uid=v.id, source=self.source_type))
+        thread = threading.Thread(target=_init_values)
+        thread.daemon = True
+        thread.start()
 
     @property
     def voices(self) -> dict:
         d = {}
-        _voices = run_coroutine_sync(fetch_voices(source="local"))
+        _voices = run_coroutine_sync(fetch_voices(source=self.source_type))
         for v in _voices:
             d.setdefault(f"{v.name}", v.uid)
         return d

@@ -4,14 +4,14 @@ import io
 import requests  # could do aiohttp if needed
 
 from elevenlabs import play
-from diskcache import Cache
 from pydub import AudioSegment
 
-from tts.tts import TTS
-
-from helpers import TCDNDConfig as Config
+from helpers.instance_manager import get_config
+from helpers.utils import try_get_cache
 from helpers.utils import run_coroutine_sync
-from helpers.constants import SOURCE_SE
+from helpers.constants import TTS_SOURCE
+
+from tts.tts import TTS
 
 from custom_logger.logger import logger
 
@@ -19,34 +19,22 @@ from data.voices import bulk_insert_voices, fetch_voices, get_all_voice_ids
 
 
 class StreamElementsTTS(TTS):
-    source_type = SOURCE_SE
+    source_type = TTS_SOURCE.SOURCE_SE
 
-    def __init__(self, config: Config, full_instance: bool = True):
-        super().__init__(config=None)
-
-        self.config = config
+    def __init__(self):
+        super().__init__()
         self.url = "https://api.streamelements.com/kappa/v2/speech?"
 
-        if full_instance:
-            db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=self.source_type))
-            if not db_voice_ids:
+        db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=self.source_type))
+        if not db_voice_ids:
 
-                def _init_values():
-                    run_coroutine_sync(bulk_insert_voices(values=[(f"SE {voice}", f"se.{voice}") for voice in se_voices], source=self.source_type))
+            def _init_values():
+                run_coroutine_sync(bulk_insert_voices(values=[(f"SE {voice}", f"se.{voice}") for voice in se_voices], source=self.source_type))
 
-                thread = threading.Thread(target=_init_values)
-                thread.daemon = True
-                thread.start()
+            thread = threading.Thread(target=_init_values)
+            thread.daemon = True
+            thread.start()
 
-        if config.getboolean(section="CACHE", option="enabled"):
-            # Caching in general, but for here, it's specific to API results
-            cache_dir = config.get(section="CACHE", option="directory", fallback=None)
-            if not cache_dir:
-                self.cache = Cache()
-            else:
-                self.cache = Cache(directory=cache_dir)
-        else:
-            self.cache = None
 
     @property
     def voices(self) -> dict:
@@ -83,7 +71,9 @@ class StreamElementsTTS(TTS):
             logger.error(f"Could not request TTS from StreamElements. Error: {res.content}")
         _initial.seek(0)
         audio = AudioSegment.from_file(_initial, format="mp3")
-        boosted = audio + self.config.getfloat(section="STREAMELEMENTS", option="boost_db", fallback=6.2)  # dB
+
+        config = get_config(name="default")
+        boosted = audio + config.getfloat(section="STREAMELEMENTS", option="boost_db", fallback=6.2)  # dB
         boosted.export(output, format="mp3")
         output.seek(0)
         return output
@@ -103,8 +93,9 @@ class StreamElementsTTS(TTS):
     def test_speak(self, text: str = "Hello there. How are you?", voice_id: str | None = None):
         key = f"se.preview.{voice_id}"
         audio = None
-        if self.cache is not None:
-            audio_l = self.cache.get(key=key, default=None)
+        cache = try_get_cache("default")
+        if cache:
+            audio_l = cache.get(key=key, default=None)
             if audio_l:
                 audio = iter(audio_l)
                 logger.debug(f"Fetched cached preview audio for `{voice_id}`")
@@ -112,10 +103,12 @@ class StreamElementsTTS(TTS):
 
             def generate_and_play():
                 audio = list(self.audio_stream_generator(text=text, voice_id=voice_id))
-                if self.cache:
-                    self.cache.set(
+                config = get_config(name="default")
+
+                if cache:
+                    cache.set(
                         key=key,
-                        expire=self.config.getint(
+                        expire=config.getint(
                             section="CACHE",
                             option="tts_cache_expiry",
                             fallback=7 * 24 * 60 * 60 * 4 * 3,

@@ -5,8 +5,10 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Coroutine, TypeVar
 import requests
+from diskcache import Cache
 from packaging.version import Version
 from _version import __version__ as current_version
+from helpers.instance_manager import get_cache, get_config
 
 T = TypeVar("T")
 
@@ -77,4 +79,11 @@ def check_for_updates():
     else:
         if Version(current_version.replace("v", "")) < Version(latest.replace("v", "")):
             return f"https://github.com/{owner}/{repo}/releases/tag/{latest}"
+    return None
+
+
+def try_get_cache(name="default") -> Cache | None:
+    config = get_config(name)
+    if config.getboolean(section="CACHE", option="enabled"):
+       return get_cache(name)
     return None

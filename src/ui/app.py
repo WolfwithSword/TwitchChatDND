@@ -4,7 +4,6 @@ from _version import __version__ as app_version
 from chatdnd import SessionManager
 from chatdnd.events.ui_events import ui_request_floating_notif
 from custom_logger.logger import logger
-from helpers import TCDNDConfig as Config
 from helpers.utils import get_resource_path
 from twitch.chat import ChatController
 from twitch.utils import TwitchUtils
@@ -25,7 +24,6 @@ class DesktopApp(ctk.CTk):
         self,
         session_mgr: SessionManager,
         chat_ctrl: ChatController,
-        config: Config,
         twitch_utils: TwitchUtils,
     ):
         super().__init__()
@@ -33,7 +31,6 @@ class DesktopApp(ctk.CTk):
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.resizable(False, False)
-        self.config: Config = config
         self.twitch_utils = twitch_utils
         self.session_mgr = session_mgr
         self.chat_ctrl = chat_ctrl
@@ -67,7 +64,7 @@ class DesktopApp(ctk.CTk):
         # TODO - see if we even need to pass in chat_ctrl, or if we can purely use my Events and triggers
         home = HomeTab(home_tab, self.chat_ctrl, self.context_menu)
         users = UsersTab(users_tab, self.chat_ctrl, self.context_menu)
-        settings = SettingsTab(settings_tab, self.config, self.twitch_utils)
+        settings = SettingsTab(settings_tab, self.twitch_utils)
         assert all([home, users, settings])
 
     def button_callback(self):

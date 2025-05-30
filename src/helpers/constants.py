@@ -1,11 +1,9 @@
 
 # Keep always as lowercase
-SOURCE_LOCAL = "local"
-SOURCE_11L = "elevenlabs"
-SOURCE_SE = 'streamelements'
+from enum import Enum
 
-SOURCES = [
-    SOURCE_LOCAL,
-    SOURCE_11L,
-    SOURCE_SE
-]
+
+class TTS_SOURCE(Enum): #pylint: disable=invalid-name
+    SOURCE_LOCAL = "local"
+    SOURCE_11L = "elevenlabs"
+    SOURCE_SE = 'streamelements'

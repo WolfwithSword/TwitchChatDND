@@ -6,10 +6,9 @@ from quart import Quart, websocket, send_from_directory
 
 from data import Member
 from data.voices import fetch_voice
-from tts import tts_instances
-from helpers import TCDNDConfig as Config
 from helpers.utils import get_resource_path
-from helpers.constants import SOURCE_LOCAL
+from helpers.constants import TTS_SOURCE
+from tts import get_tts
 from custom_logger.logger import logger
 
 from chatdnd.events.chat_events import chat_say_command
@@ -59,9 +58,8 @@ async def broadcast_member_update(message):
 
 
 class ServerApp:
-    def __init__(self, config: Config):
+    def __init__(self):
         self.app = Quart(__name__)
-        self.config = config
         self._setup_routes()
 
         self._party: set[Member] = set()
@@ -92,15 +90,17 @@ class ServerApp:
                         last_chunk_duration = 0
                         send_bounce = False
 
-                        tts_type = SOURCE_LOCAL
+                        tts_type = TTS_SOURCE.SOURCE_LOCAL
                         voice_id = ""
                         if member and member.preferred_tts_uid:
                             _voice = await fetch_voice(uid=member.preferred_tts_uid)
                             if _voice:
                                 voice_id = member.preferred_tts_uid
-                                tts_type = _voice.source
-
-                        async for chunk, _duration in tts_instances[tts_type].get_stream(message, voice_id):
+                                tts_type = TTS_SOURCE(_voice.source)
+                        tts = get_tts(tts_type)
+                        if not tts:
+                            continue
+                        async for chunk, _duration in tts.get_stream(message, voice_id):
                             # TODO: Allow for break / interruption from emergency stuff - also hide stuff.
                             # Or yknow, just instruct to hide the browser source.
                             # Yeah, to mute, best to just hide the browser source.
@@ -150,11 +150,11 @@ class ServerApp:
     async def chat_say(self, member: Member, text: str):
         await message_queue.put((member, text))
 
-    async def run_task(self, host="0.0.0.0", **kwargs):
+    async def run_task(self, host="0.0.0.0", port:int = 5000, **kwargs):
         # TODO on port change, request app restart
         await self.app.run_task(
             host=host,
-            port=self.config.getint(section="SERVER", option="port"),
+            port=port,
             **kwargs,
         )
 

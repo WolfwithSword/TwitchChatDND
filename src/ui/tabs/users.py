@@ -88,7 +88,7 @@ class UsersTab:
                 members = await fetch_paginated_members(self.page, self.per_page, name_filter=self.name_filter)
 
                 new_cards = [
-                    MemberCard(self.members_list_frame, member, self.context_menu, self.chat_ctrl, self.chat_ctrl.config) for member in members
+                    MemberCard(self.members_list_frame, member, self.context_menu, self.chat_ctrl) for member in members
                 ]
 
                 columns = 6

@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from custom_logger.logger import logger
 
+from helpers.instance_manager import get_config
 from ui.widgets.CTkPopupMenu.custom_popupmenu import CTkContextMenu, ContextMenuTypes
 from ui.widgets.member_card import MemberCard
 from twitch.chat import ChatController
@@ -17,9 +18,10 @@ from chatdnd.events.ui_events import ui_force_home_party_update
 class HomeTab:
     def __init__(self, parent, chat_ctrl: ChatController, context_menu: CTkContextMenu):
         self.parent = parent
-        self.config = chat_ctrl.config
         self.chat_ctrl = chat_ctrl
         self.context_menu = context_menu
+
+        config = get_config('default')
 
         self.parent.grid_columnconfigure(1, weight=0)
         self.parent.grid_columnconfigure((0, 2), weight=1)
@@ -41,7 +43,7 @@ class HomeTab:
         session_status_label = ctk.CTkLabel(_inner_frame, textvariable=self.session_status_var, height=20, width=150)
         session_status_label.grid(row=0, column=1, sticky="w", padx=(10, 0))
 
-        self.party_size_var = ctk.IntVar(value=self.config.getint(section="DND", option="party_size", fallback=4))
+        self.party_size_var = ctk.IntVar(value=config.getint(section="DND", option="party_size", fallback=4))
         self.party_label_var = ctk.StringVar(value=f"Party Size - {self.party_size_var.get()}")
         party_label = ctk.CTkLabel(_inner_frame, textvariable=self.party_label_var)
         party_label.grid(row=1, column=0, pady=(16, 4), columnspan=2)
@@ -152,7 +154,6 @@ class HomeTab:
                 member,
                 self.context_menu,
                 self.chat_ctrl,
-                self.config,
                 width=130,
                 height=170,
                 textsize=10,
@@ -246,7 +247,8 @@ class HomeTab:
         self.queue_label_var.set(value=f"{len(self.chat_ctrl.session_mgr.session.queue)} in Queue")
 
     def _update_party_limit(self, value):
-        if int(value) != self.config.getint(section="DND", option="party_size", fallback=-1):
+        config = get_config('default')
+        if int(value) != config.getint(section="DND", option="party_size", fallback=-1):
             self.party_label_var.set(f"Party Size - {int(value)}")
-            self.config.set(section="DND", option="party_size", value=str(int(value)))
-            self.config.write_updates()
+            config.set(section="DND", option="party_size", value=str(int(value)))
+            config.write_updates()

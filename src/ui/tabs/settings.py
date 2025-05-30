@@ -8,11 +8,11 @@ import customtkinter as ctk
 from CTkListbox import *
 from CTkToolTip import CTkToolTip
 
-from helpers import TCDNDConfig as Config
+from helpers.instance_manager import get_config
 from helpers.utils import run_coroutine_sync, check_for_updates, get_resource_path
-from helpers.constants import SOURCE_11L
+from helpers.constants import TTS_SOURCE
 from twitch.utils import TwitchUtils
-from tts import ElevenLabsTTS
+from tts import get_tts
 from data.voices import delete_voice
 from data.member import remove_tts
 
@@ -39,10 +39,10 @@ from ui.widgets.CTkFloatingNotifications import NotifyType
 class SettingsTab:
     # TODO Someone, please, clean this POS up. I'm begging. Nvm it's actually sorta clean, not really, but good enough
 
-    def __init__(self, parent, config: Config, twitch_utils: TwitchUtils):
+    def __init__(self, parent, twitch_utils: TwitchUtils):
         self.parent = parent
-        self.config = config
         self.twitch_utils = twitch_utils
+        config = get_config('default')
 
         self.startup = True
 
@@ -125,11 +125,11 @@ class SettingsTab:
 
         self.twitch_channel.grid(row=row, column=column, padx=(20, 20), pady=(2, 20))
         column += 1
-        self.prefix_var = ctk.StringVar(value=self.config.get(section="BOT", option="prefix", fallback="!").strip()[0])
+        self.prefix_var = ctk.StringVar(value=config.get(section="BOT", option="prefix", fallback="!").strip()[0])
         prefix_options = ctk.CTkSegmentedButton(self.parent, values=["!", "~", "+", "&"], variable=self.prefix_var)
         prefix_options.grid(row=row, column=column, padx=(20, 20), pady=(2, 20))
         column += 1
-        self.join_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="join_command", fallback=""))
+        self.join_cmd_var = ctk.StringVar(value=config.get(section="BOT", option="join_command", fallback=""))
         join_cmd_entry = ctk.CTkEntry(
             self.parent,
             width=100,
@@ -143,7 +143,7 @@ class SettingsTab:
         join_cmd_entry.grid(row=row, column=column, padx=(20, 20), pady=(2, 20))
         join_cmd_entry.configure(justify="center")
         column += 1
-        self.speak_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="speak_command", fallback=""))
+        self.speak_cmd_var = ctk.StringVar(value=config.get(section="BOT", option="speak_command", fallback=""))
         speak_cmd_entry = ctk.CTkEntry(
             self.parent,
             width=100,
@@ -168,7 +168,7 @@ class SettingsTab:
         voices_cmd_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
         row += 1
         column -= 1
-        self.voice_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="voice_command", fallback=""))
+        self.voice_cmd_var = ctk.StringVar(value=config.get(section="BOT", option="voice_command", fallback=""))
         voice_cmd_entry = ctk.CTkEntry(
             self.parent,
             width=100,
@@ -182,7 +182,7 @@ class SettingsTab:
         voice_cmd_entry.grid(row=row, column=column, padx=(20, 20), pady=(2, 20))
         voice_cmd_entry.configure(justify="center")
         column += 1
-        self.listvoice_cmd_var = ctk.StringVar(value=self.config.get(section="BOT", option="voices_command", fallback=""))
+        self.listvoice_cmd_var = ctk.StringVar(value=config.get(section="BOT", option="voices_command", fallback=""))
         voices_cmd_entry = ctk.CTkEntry(
             self.parent,
             width=100,
@@ -208,7 +208,7 @@ class SettingsTab:
         button_websrv.grid(row=row, column=column, padx=10, pady=(20, 10))
 
         column += 1
-        self.label_bs_var = ctk.StringVar(value=f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay")
+        self.label_bs_var = ctk.StringVar(value=f"http://localhost:{config.get(section="SERVER", option='port', fallback='5000')}/overlay")
         label_bs = ctk.CTkEntry(self.parent, textvariable=self.label_bs_var, state="readonly", width=190)
         label_bs.grid(row=row, column=column, padx=(10, 2), pady=(10, 2))
 
@@ -225,7 +225,7 @@ class SettingsTab:
         port_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
 
         row += 1
-        self.port_var = ctk.StringVar(value=self.config.get(section="SERVER", option="port", fallback="5000"))
+        self.port_var = ctk.StringVar(value=config.get(section="SERVER", option="port", fallback="5000"))
         self.port_var.trace_add("write", self._validate_port)
         port_entry = ctk.CTkEntry(
             self.parent,
@@ -266,7 +266,7 @@ class SettingsTab:
 
         column = 1
         row += 1
-        self.el_api_key_var = ctk.StringVar(value=self.config.get(section="ELEVENLABS", option="api_key", fallback=""))
+        self.el_api_key_var = ctk.StringVar(value=config.get(section="ELEVENLABS", option="api_key", fallback=""))
         el_api_key_entry = ctk.CTkEntry(
             self.parent,
             width=180,
@@ -314,7 +314,7 @@ class SettingsTab:
         el_warn_val_label = ctk.CTkLabel(self.parent, text="Warning Limit")
         el_warn_val_label.grid(row=row, column=column, padx=(10, 10), pady=(62, 2), sticky="n")
 
-        self.el_warning_var = ctk.StringVar(value=self.config.get(section="ELEVENLABS", option="usage_warning", fallback="500"))
+        self.el_warning_var = ctk.StringVar(value=config.get(section="ELEVENLABS", option="usage_warning", fallback="500"))
         self.el_warning_var.trace_add("write", self._validate_el_warning_numeric)
         el_warning_entry = ctk.CTkEntry(
             self.parent,
@@ -375,7 +375,7 @@ class SettingsTab:
         self.startup = False
 
     def open_edit_popup(self, event=None):
-        AddVoiceCard(self.config, self._update_voice_list)
+        AddVoiceCard(self._update_voice_list)
 
     def _on_voice_option_select(self, option):
         if option:
@@ -389,7 +389,7 @@ class SettingsTab:
             self.preview_v_button.configure(state="disabled")
 
     def _import_e11_all(self):
-        client = ElevenLabsTTS(self.config)
+        client = get_tts(TTS_SOURCE.SOURCE_11L)
         success = client.import_all(True)
         if success:
             self._update_voice_list()
@@ -398,12 +398,12 @@ class SettingsTab:
         option = self.e11_voices.get()
         if not option:
             return
-        client = ElevenLabsTTS(self.config)
+        client = get_tts(TTS_SOURCE.SOURCE_11L)
         if uid := client.get_voices()[option]:
             on_elevenlabs_test_speak.trigger(["Hello there. How are you?", uid])
 
     def _update_voice_list(self):
-        client = ElevenLabsTTS(self.config)
+        client = get_tts(TTS_SOURCE.SOURCE_11L)
         if self.e11_voices.size():
             self.e11_voices.selection_clear()
             while self.e11_voices.size():
@@ -419,17 +419,18 @@ class SettingsTab:
         if self.e11_voices.size() <= 1:
             return
         option = self.e11_voices.get()
-        client = ElevenLabsTTS(self.config)
+        client = get_tts(TTS_SOURCE.SOURCE_11L)
         result1 = None
         if uid := client.get_voices()[option]:
             run_coroutine_sync(remove_tts(voice_id=uid))
-            result1 = run_coroutine_sync(delete_voice(uid=uid, source=SOURCE_11L))
+            result1 = run_coroutine_sync(delete_voice(uid=uid, source=TTS_SOURCE.SOURCE_11L))
         if result1:
             self._update_voice_list()
 
     def _update_websrv_settings(self):
-        self.config.set(section="SERVER", option="port", value=str(self.port_var.get()))
-        self.config.write_updates()
+        config = get_config('default')
+        config.set(section="SERVER", option="port", value=str(self.port_var.get()))
+        config.write_updates()
         ui_request_floating_notif.trigger(
             [
                 "Please restart the application to apply port changes!",
@@ -437,44 +438,47 @@ class SettingsTab:
                 {"duration": 20000},
             ]
         )
-        self.label_bs_var.set(f"http://localhost:{self.config.get(section="SERVER", option='port', fallback='5000')}/overlay")
+        self.label_bs_var.set(f"http://localhost:{config.get(section="SERVER", option='port', fallback='5000')}/overlay")
         # TODO Look into if we can restart task for webserver
 
     def _update_el_settings(self):
-        self.config.set(section="ELEVENLABS", option="api_key", value=str(self.el_api_key_var.get()))
-        self.config.set(
+        config = get_config('default')
+        config.set(section="ELEVENLABS", option="api_key", value=str(self.el_api_key_var.get()))
+        config.set(
             section="ELEVENLABS",
             option="usage_warning",
             value=str(self.el_warning_var.get()),
         )
-        self.config.write_updates()
+        config.write_updates()
         request_elevenlabs_connect.trigger()
 
     def _update_bot_settings(self):
         self.chat_con_label.configure(text="Chat Connecting...", text_color="yellow")
-        self.config.set(section="BOT", option="prefix", value=str(self.prefix_var.get()))
-        self.config.set(
+        config = get_config('default')
+        config.set(section="BOT", option="prefix", value=str(self.prefix_var.get()))
+        config.set(
             section="BOT",
             option="speak_command",
             value=self.speak_cmd_var.get().strip(),
         )
-        self.config.set(section="BOT", option="join_command", value=self.join_cmd_var.get().strip())
-        self.config.set(
+        config.set(section="BOT", option="join_command", value=self.join_cmd_var.get().strip())
+        config.set(
             section="BOT",
             option="voice_command",
             value=self.voice_cmd_var.get().strip(),
         )
-        self.config.set(
+        config.set(
             section="BOT",
             option="voices_command",
             value=self.listvoice_cmd_var.get().strip(),
         )
-        self.config.write_updates()
+        config.write_updates()
         ui_settings_twitch_channel_update_event.trigger([True, self.twitch_utils, 5])
 
     def _update_elevenlabs_usage(self, count: int, limit: int):
         self.e11labs_usage_label.configure(text=f"{limit-count}/{limit} | {abs(((limit-count)*100)//limit)}% Remaining")
-        if limit - count < self.config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
+        config = get_config('default')
+        if limit - count < config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
             ui_request_floating_notif.trigger(
                 [
                     "ElevenLabs credit usage warning!",
@@ -528,7 +532,8 @@ class SettingsTab:
             self.del_v_button.configure(state="disabled")
             self.preview_v_button.configure(state="disabled")
             self.parent.focus()
-            if self.config.get(section="ELEVENLABS", option="api_key") and not self.startup:
+            config = get_config('default')
+            if config.get(section="ELEVENLABS", option="api_key") and not self.startup:
                 ui_request_floating_notif.trigger(["ElevenLabs disconnected!", NotifyType.WARNING])
 
     def _update_bot_connection(self, status: bool):
@@ -572,21 +577,19 @@ class SettingsTab:
 class AddVoiceCard(ctk.CTkToplevel):
     open_popup = None
 
-    def __init__(self, config: Config, update_list_callback: callable):
+    def __init__(self, update_list_callback: callable):
         if AddVoiceCard.open_popup is not None:
             AddVoiceCard.open_popup.focus_set()
             return
 
         super().__init__()
         AddVoiceCard.open_popup = self
-        self.config: Config = config
         self.update_list_callback = update_list_callback
         self.title("Add new ElevenLabs Voice")
         self.geometry("400x400")
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self.close_popup)
 
-        self.tts = ElevenLabsTTS(self.config)
         self.attributes("-topmost", True)
         self.create_widgets()
 
@@ -605,7 +608,7 @@ class AddVoiceCard(ctk.CTkToplevel):
         self.save_button.pack(pady=10)
 
     def save_changes(self):
-        elvoice = self.tts.get_voice_object(voice_id=self.voice_id_var.get(), run_sync_always=True)
+        elvoice = get_tts(TTS_SOURCE.SOURCE_11L).get_voice_object(voice_id=self.voice_id_var.get(), run_sync_always=True)
         if elvoice:
             self.close_popup()
         else:
