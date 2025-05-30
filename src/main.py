@@ -9,6 +9,7 @@ from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 
 from initialize import args
+from tts import initialize_tts
 
 from twitch.utils import TwitchUtils
 from twitch.chat import ChatController
@@ -74,6 +75,9 @@ cache_dir = os.path.join(cwd, ".tcdnd-cache/")
 
 config = Config()
 config.setup(config_path)
+
+# Initialize TTS Engines
+initialize_tts(config)
 
 if not config.has_option(section="CACHE", option="directory"):
     config.set(section="CACHE", option="directory", value=cache_dir)
@@ -162,7 +166,7 @@ async def run_ui():
     global APP_RUNNING
     app = DesktopApp(session_mgr, chat, config, twitch_utils)
     while app.running:
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(1000/30/1000)
         app.update()
     APP_RUNNING = False
     await asyncio.sleep(2)

@@ -10,9 +10,9 @@ from custom_logger.logger import logger
 from data import Member
 from data.member import create_or_get_member, fetch_member, update_tts, delete_member
 from helpers import TCDNDConfig as Config
-from helpers.constants import SOURCE_11L, SOURCE_LOCAL, SOURCES
+from helpers.constants import SOURCE_11L, SOURCE_LOCAL
 from helpers.utils import run_coroutine_sync
-from tts import ElevenLabsTTS, LocalTTS
+from tts import SOURCES, tts_instances
 from chatdnd.events.chat_events import chat_on_party_modify
 from chatdnd.events.ui_events import ui_refresh_user, ui_request_member_refresh, on_external_member_change
 from chatdnd.events.session_events import session_refresh_member
@@ -186,11 +186,6 @@ class MemberEditCard(ctk.CTkToplevel):
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self.close_popup)
 
-        self.tts = {
-            SOURCE_LOCAL: LocalTTS(self.config, False),
-            SOURCE_11L: ElevenLabsTTS(self.config),
-        }
-
         self.attributes("-topmost", True)
 
         self.create_widgets()
@@ -220,7 +215,7 @@ class MemberEditCard(ctk.CTkToplevel):
 
         )
 
-        voices = self.tts[current_source].get_voices()
+        voices = tts_instances[current_source].get_voices()
 
         self.tts_drop_frame = CTkScrollableDropdown(self.tts_source_dropdown, values=valid_sources, command=self._update_voicelist, height=300, width=160, alpha=1, button_height=30)
         self.tts_options = list(voices.keys())
@@ -249,7 +244,7 @@ class MemberEditCard(ctk.CTkToplevel):
         num_sessions_label.pack(pady=(20, 5))
 
     def _update_voicelist(self, choice):
-        voices = self.tts[choice].get_voices()
+        voices = tts_instances[choice].get_voices()
         self.tts_options = list(voices.keys())
         self.tts_voice_drop_frame.configure(values=self.tts_options)
         if self.member.preferred_tts_uid and self.member.preferred_tts_uid in voices.values():
@@ -264,12 +259,12 @@ class MemberEditCard(ctk.CTkToplevel):
         self.tts_source_var.set(value=choice)
 
     def test_tts(self):
-        voice_id = self.tts[self.tts_source_var.get()].get_voices()[self.tts_dropdown.get()]
-        self.tts[self.tts_source_var.get()].test_speak(voice_id=voice_id)
+        voice_id = tts_instances[self.tts_source_var.get()].get_voices()[self.tts_dropdown.get()]
+        tts_instances[self.tts_source_var.get()].test_speak(voice_id=voice_id)
 
     def save_changes(self):
         new_tts = self.tts_dropdown.get()
-        voices = self.tts[self.tts_source_var.get()].get_voices()
+        voices = tts_instances[self.tts_source_var.get()].get_voices()
         voice_id = voices[new_tts]
 
         asyncio.create_task(update_tts(self.member, voice_id))

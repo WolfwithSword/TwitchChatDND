@@ -14,3 +14,5 @@ static-ffmpeg==2.13
 win11toast==0.35
 alembic==1.16.1
 packaging==25.0
+requests==2.32.3
+pydub==0.25.1
