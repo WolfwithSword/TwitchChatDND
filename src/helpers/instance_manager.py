@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import atexit
 from functools import lru_cache
 from logging import getLogger
@@ -51,10 +52,10 @@ def get_cache(name='default') -> Cache:
 def init_cache(name='default', path=None) -> Cache:
     if name in _cache_registry:
         return get_cache(name)
-    if path is None or not os.path.isdir(path):
+    if path is None:
         logger.error(f"Attempted to initialize cache [{name}] without invalid path: {path}.")
         return get_cache(name)
-
+    Path(path).mkdir(parents=True, exist_ok=True)
     _cache_registry[name] = path
     return get_cache(name)
 
