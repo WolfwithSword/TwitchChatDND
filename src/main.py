@@ -3,8 +3,8 @@ import sys
 
 import asyncio
 from queue import Queue
+from logging import getLogger
 
-import static_ffmpeg
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 
@@ -27,10 +27,10 @@ from chatdnd.events.ui_events import (
     ui_fetch_update_check_event,
 )
 
-from custom_logger.logger import logger
 from db import initialize_database
 
 assert args is not None
+logger = getLogger("ChatDND")
 cwd = os.getcwd()
 
 _tasks = Queue()
@@ -41,10 +41,6 @@ if getattr(sys, "frozen", False):
     base_path = sys._MEIPASS
     src_path = os.path.join(base_path, "src")
     sys.path.insert(0, src_path)
-
-logger.info("Setting up ffmpeg...")
-static_ffmpeg.add_paths()
-logger.info("Done setting up ffmpeg")
 
 
 def run_migrations():
