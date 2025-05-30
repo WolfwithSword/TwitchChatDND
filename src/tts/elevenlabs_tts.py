@@ -57,7 +57,6 @@ class ElevenLabsTTS(TTS):
             try:
                 test_client = ElevenLabs(api_key=key)
                 # This will cause an exception if invalid api key
-                test_client.user.subscription
                 user_subscription = test_client.user.subscription.get()
                 count = user_subscription.character_count
                 limit = user_subscription.character_limit
