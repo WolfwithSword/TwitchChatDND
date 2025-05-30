@@ -1,5 +1,6 @@
+from typing import List, Tuple
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Integer, asc, CheckConstraint
+from sqlalchemy import String, Integer, and_, asc, CheckConstraint
 from sqlalchemy.future import select
 
 from data.base import Base
@@ -54,7 +55,7 @@ async def _upsert_voice(name: str, uid: str, source: str) -> Voice | None:
         return None
     async with async_session() as session:
         async with session.begin():
-            query = select(Voice).where(Voice.name == name).where(Voice.uid == uid).where(Voice.source == source)
+            query = select(Voice).where(and_(Voice.name == name, Voice.uid == uid, Voice.source == source))
             result = await session.execute(query)
             voice = result.scalars().first()
 
@@ -65,6 +66,14 @@ async def _upsert_voice(name: str, uid: str, source: str) -> Voice | None:
                 new_voice = Voice(name=name, uid=uid, source=source)
                 session.add(new_voice)
                 return new_voice
+
+
+async def bulk_insert_voices(values: List[Tuple[str, str]], source: str):
+    if source not in SOURCES:
+        return None
+    async with async_session() as session:
+        async with session.begin():
+            session.add_all([Voice(name=v[0], uid=v[1], source=source) for v in values])
 
 
 async def get_all_voice_ids(source: str) -> list:

@@ -3,12 +3,13 @@ import sys
 
 import asyncio
 from queue import Queue
+from logging import getLogger
 
-import static_ffmpeg
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 
 from initialize import args
+from tts import initialize_tts
 
 from twitch.utils import TwitchUtils
 from twitch.chat import ChatController
@@ -26,10 +27,10 @@ from chatdnd.events.ui_events import (
     ui_fetch_update_check_event,
 )
 
-from custom_logger.logger import logger
 from db import initialize_database
 
 assert args is not None
+logger = getLogger("ChatDND")
 cwd = os.getcwd()
 
 _tasks = Queue()
@@ -40,10 +41,6 @@ if getattr(sys, "frozen", False):
     base_path = sys._MEIPASS
     src_path = os.path.join(base_path, "src")
     sys.path.insert(0, src_path)
-
-logger.info("Setting up ffmpeg...")
-static_ffmpeg.add_paths()
-logger.info("Done setting up ffmpeg")
 
 
 def run_migrations():
@@ -74,6 +71,9 @@ cache_dir = os.path.join(cwd, ".tcdnd-cache/")
 
 config = Config()
 config.setup(config_path)
+
+# Initialize TTS Engines
+initialize_tts(config)
 
 if not config.has_option(section="CACHE", option="directory"):
     config.set(section="CACHE", option="directory", value=cache_dir)
@@ -162,7 +162,7 @@ async def run_ui():
     global APP_RUNNING
     app = DesktopApp(session_mgr, chat, config, twitch_utils)
     while app.running:
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(1000/30/1000)
         app.update()
     APP_RUNNING = False
     await asyncio.sleep(2)

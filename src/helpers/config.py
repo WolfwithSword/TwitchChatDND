@@ -22,7 +22,7 @@ class TCDNDConfig(configparser.ConfigParser):
         _needs_init = False
         if not self.get(section=section, option=option, fallback=None):
             _needs_init = True
-            self.set(section=section, option=option, value=value)
+            self.set(section=section, option=option, value=str(value))
         return _needs_init
 
     def setup(self, path: str):
@@ -37,23 +37,24 @@ class TCDNDConfig(configparser.ConfigParser):
                 "voices_command": "voices",
                 "voice_command": "voice",
                 "help_command": "dndhelp",
-                "voice_user_cooldown": "10",
-                "voices_user_cooldown": "15",
-                "voices_global_cooldown": "10",
-                "speak_global_cooldown": "1",
-                "speak_user_cooldown": "10",
-                "join_user_cooldown": "30",
-                "help_global_cooldown": "30",
+                "voice_user_cooldown": 10,
+                "voices_user_cooldown": 15,
+                "voices_global_cooldown": 10,
+                "speak_global_cooldown": 1,
+                "speak_user_cooldown": 10,
+                "join_user_cooldown": 30,
+                "help_global_cooldown": 30,
             },
             "SERVER": {"port": "5000"},
             "CACHE": {
                 "enabled": "true",
-                "cache_expiry": str(7 * 24 * 60 * 60),  # 1 week
-                "tts_cache_expiry": str(7 * 24 * 60 * 60 * 4 * 3),  # 3 months
-                "pfp_cache_expiry": str(7 * 24 * 60 * 60 * 2),  # 2 weeks
+                "cache_expiry": 7 * 24 * 60 * 60,  # 1 week
+                "tts_cache_expiry": 7 * 24 * 60 * 60 * 4 * 3,  # 3 months
+                "pfp_cache_expiry": 7 * 24 * 60 * 60 * 2,  # 2 weeks
             },
-            "DND": {"party_size": "4"},
-            "ELEVENLABS": {"api_key": "", "usage_warning": "500"},
+            "DND": {"party_size": 4},
+            "ELEVENLABS": {"api_key": "", "usage_warning": 500},
+            "STREAMELEMENTS": {"boost_db": 6.2},
         }
 
         # Init config.ini file

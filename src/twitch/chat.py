@@ -16,7 +16,8 @@ from data.member import create_or_get_member, fetch_member, update_tts
 from custom_logger.logger import logger
 
 from helpers import TCDNDConfig as Config
-from helpers.constants import SOURCE_11L, SOURCE_LOCAL
+from helpers.constants import SOURCE_11L, SOURCE_SE, SOURCE_LOCAL
+from tts import SOURCES, tts_instances
 
 from chatdnd import SessionManager
 from chatdnd.events.ui_events import (
@@ -37,8 +38,6 @@ from chatdnd.events.chat_events import (
 from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_event
 
 from chatdnd.events.session_events import on_active_party_update
-
-from tts import ElevenLabsTTS, LocalTTS
 
 
 class ChatController:
@@ -270,22 +269,19 @@ class ChatController:
     async def _get_voices(self, cmd: ChatCommand):
         param = cmd.parameter
         if param.upper().strip() == "11L":
-            param = SOURCE_11L.upper()
-        if not param or param.upper().strip() not in [
-            SOURCE_LOCAL.upper(),
-            SOURCE_11L.upper(),
-        ]:
+            param = SOURCE_11L
+        elif param.upper().strip() == "SE":
+            param = SOURCE_SE
+        if not param or param.lower().strip() not in SOURCES:
             await cmd.reply(
-                f"@{cmd.user.display_name} available TTS types are 'local', '11L'. Try {self.chat._prefix}{self.command_list['voices']} <type>"
+                f"@{cmd.user.display_name} available TTS types are 'local', '11L', 'SE'. Try {self.chat._prefix}{self.command_list['voices']} <type>"
             )
             return
         param = param.upper().strip()
         msg = ""
-        if param == SOURCE_LOCAL.upper():
-            tts = LocalTTS(self.config, False)
-            msg = tts.voice_list_message()
-        elif param == SOURCE_11L.upper():
-            msg = ElevenLabsTTS.voices_messages()
+
+        tts = tts_instances.get(param.lower(), None)
+        msg = None if not tts else tts.voice_list_message()
         if not msg:
             return
         await cmd.reply(msg)
@@ -302,13 +298,12 @@ class ChatController:
         voice_id = ""
 
         # Try each TTS
+        if param.startswith('se.'):
+            voice_id  = tts_instances.get(SOURCE_SE).search_for_voice_by_id(param)
         if not voice_id:
-            tts = LocalTTS(self.config, False)
-            voice_id = tts.get_voice_id_by_friendly_name(param)
-
+            voice_id =  tts_instances.get(SOURCE_LOCAL).get_voice_id_by_friendly_name(param)
         if not voice_id:
-            tts = ElevenLabsTTS(self.config, False)
-            voice = tts.search_for_voice_by_id(param)
+            voice =  tts_instances.get(SOURCE_11L).search_for_voice_by_id(param)
             if voice:
                 voice_id = voice.voice_id
 

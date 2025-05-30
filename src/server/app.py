@@ -6,10 +6,10 @@ from quart import Quart, websocket, send_from_directory
 
 from data import Member
 from data.voices import fetch_voice
-from tts import LocalTTS, ElevenLabsTTS
+from tts import tts_instances
 from helpers import TCDNDConfig as Config
 from helpers.utils import get_resource_path
-from helpers.constants import SOURCE_11L, SOURCE_LOCAL
+from helpers.constants import SOURCE_LOCAL
 from custom_logger.logger import logger
 
 from chatdnd.events.chat_events import chat_say_command
@@ -62,10 +62,6 @@ class ServerApp:
     def __init__(self, config: Config):
         self.app = Quart(__name__)
         self.config = config
-        self.tts = {
-            SOURCE_LOCAL: LocalTTS(config),
-            SOURCE_11L: ElevenLabsTTS(config, full_instance=True),
-        }
         self._setup_routes()
 
         self._party: set[Member] = set()
@@ -103,7 +99,8 @@ class ServerApp:
                             if _voice:
                                 voice_id = member.preferred_tts_uid
                                 tts_type = _voice.source
-                        async for chunk, _duration in self.tts[tts_type].get_stream(message, voice_id):
+
+                        async for chunk, _duration in tts_instances[tts_type].get_stream(message, voice_id):
                             # TODO: Allow for break / interruption from emergency stuff - also hide stuff.
                             # Or yknow, just instruct to hide the browser source.
                             # Yeah, to mute, best to just hide the browser source.

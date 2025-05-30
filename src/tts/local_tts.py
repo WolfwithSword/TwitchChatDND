@@ -16,21 +16,20 @@ from data.voices import _upsert_voice, fetch_voices, get_all_voice_ids
 
 
 class LocalTTS(TTS):
+    source_type = SOURCE_LOCAL
     def __init__(self, config: Config, full_instance: bool = True):
         super().__init__(config=None)
 
-        self.sample_rate = 22050  # PyTTS default
-        self.bits_per_sample = 16
-        self.num_channels = 1
-
-        self.max_chunk_size = 1024 * 8 * 8 * 2 * 2  # 256kb
-
         if full_instance:
-            engine = pyttsx4.init()
-            db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=SOURCE_LOCAL))
-            for v in engine.getProperty("voices"):
-                if v.id not in db_voice_ids:
-                    run_coroutine_sync(_upsert_voice(name=v.name, uid=v.id, source=SOURCE_LOCAL))
+            def _init_values():
+                engine = pyttsx4.init()
+                db_voice_ids = run_coroutine_sync(get_all_voice_ids(source=self.source_type))
+                for v in engine.getProperty("voices"):
+                    if v.id not in db_voice_ids:
+                        run_coroutine_sync(_upsert_voice(name=v.name, uid=v.id, source=self.source_type))
+            thread = threading.Thread(target=_init_values)
+            thread.daemon = True
+            thread.start()
 
     @property
     def voices(self) -> dict:
