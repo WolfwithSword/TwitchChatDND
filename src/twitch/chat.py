@@ -9,15 +9,15 @@ from twitchAPI.chat.middleware import (
 from twitchAPI.object.api import TwitchUser
 from twitchAPI.type import ChatEvent
 
+from helpers.instance_manager import get_config
+from helpers.constants import TTS_SOURCE
 from twitch.utils import TwitchUtils
 
 from data.member import create_or_get_member, fetch_member, update_tts
 
 from custom_logger.logger import logger
 
-from helpers import TCDNDConfig as Config
-from helpers.constants import SOURCE_11L, SOURCE_SE, SOURCE_LOCAL
-from tts import SOURCES, tts_instances
+from tts import get_tts
 
 from chatdnd import SessionManager
 from chatdnd.events.ui_events import (
@@ -41,10 +41,9 @@ from chatdnd.events.session_events import on_active_party_update
 
 
 class ChatController:
-    def __init__(self, session_mgr: SessionManager, config: Config):
+    def __init__(self, session_mgr: SessionManager):
         self.twitch_utils: TwitchUtils = None
         self.twitch: Twitch = None
-        self.config: Config = config
         self.chat: Chat = None
 
         self.session_mgr = session_mgr
@@ -74,38 +73,41 @@ class ChatController:
             logger.error(f"Chat channel not found")
             chat_on_channel_fetch.trigger([False])
             raise Exception("Channel not found")
+
+        config = get_config(name="default")
+
         chat_on_channel_fetch.trigger([True])
         chat_bot_on_connect.trigger([False])
         self.chat = await Chat(self.twitch)
         self.chat.register_event(ChatEvent.READY, self._on_ready)
 
-        self.chat.set_prefix(self.config.get(section="BOT", option="prefix", fallback="!"))
+        self.chat.set_prefix(config.get(section="BOT", option="prefix", fallback="!"))
 
-        self.command_list["join"] = self.config.get(section="BOT", option="join_command")
-        self.command_list["say"] = self.config.get(section="BOT", option="speak_command")
-        self.command_list["voices"] = self.config.get(section="BOT", option="voices_command")
-        self.command_list["voice"] = self.config.get(section="BOT", option="voice_command")
+        self.command_list["join"] = config.get(section="BOT", option="join_command")
+        self.command_list["say"] = config.get(section="BOT", option="speak_command")
+        self.command_list["voices"] = config.get(section="BOT", option="voices_command")
+        self.command_list["voice"] = config.get(section="BOT", option="voice_command")
 
-        self.command_list["help"] = self.config.get(section="BOT", option="help_command")
+        self.command_list["help"] = config.get(section="BOT", option="help_command")
 
         self.chat.register_command(
             self.command_list["help"],
             self._send_help_cmd,
-            command_middleware=[ChannelCommandCooldown(self.config.get_command_cooldown("help", "global"))],
+            command_middleware=[ChannelCommandCooldown(config.get_command_cooldown("help", "global"))],
         )
 
         self.chat.register_command(
             self.command_list["voices"],
             self._get_voices,
             command_middleware=[
-                ChannelCommandCooldown(self.config.get_command_cooldown("voices", "global")),
-                ChannelUserCommandCooldown(self.config.get_command_cooldown("voices", "user")),
+                ChannelCommandCooldown(config.get_command_cooldown("voices", "global")),
+                ChannelUserCommandCooldown(config.get_command_cooldown("voices", "user")),
             ],
         )
         self.chat.register_command(
             self.command_list["voice"],
             self._set_voice,
-            command_middleware=[ChannelUserCommandCooldown(self.config.get_command_cooldown("voice", "user"))],
+            command_middleware=[ChannelUserCommandCooldown(config.get_command_cooldown("voice", "user"))],
         )
 
         ui_settings_bot_settings_update_event.addListener(self.update_bot_settings)
@@ -116,52 +118,55 @@ class ChatController:
     def update_bot_settings(self):
         if not self.chat:
             return
-        self.chat.set_prefix(self.config.get(section="BOT", option="prefix").strip()[0])
+        config = get_config(name="default")
+
+        self.chat.set_prefix(config.get(section="BOT", option="prefix").strip()[0])
         if self.chat.unregister_command(self.command_list["join"]):
-            self.command_list["join"] = self.config.get(section="BOT", option="join_command")
+            self.command_list["join"] = config.get(section="BOT", option="join_command")
             self.chat.register_command(
                 self.command_list["join"],
                 self._add_user_to_queue,
-                command_middleware=[ChannelUserCommandCooldown(self.config.get_command_cooldown("join", "user"))],
+                command_middleware=[ChannelUserCommandCooldown(config.get_command_cooldown("join", "user"))],
             )
 
         self._update_say_cmd()
 
         if self.chat.unregister_command(self.command_list["voices"]):
-            self.command_list["voices"] = self.config.get(section="BOT", option="voices_command")
+            self.command_list["voices"] = config.get(section="BOT", option="voices_command")
             self.chat.register_command(
                 self.command_list["voices"],
                 self._get_voices,
                 command_middleware=[
-                    ChannelCommandCooldown(self.config.get_command_cooldown("voices", "global")),
-                    ChannelUserCommandCooldown(self.config.get_command_cooldown("voices", "user")),
+                    ChannelCommandCooldown(config.get_command_cooldown("voices", "global")),
+                    ChannelUserCommandCooldown(config.get_command_cooldown("voices", "user")),
                 ],
             )
         if self.chat.unregister_command(self.command_list["voice"]):
-            self.command_list["voice"] = self.config.get(section="BOT", option="voice_command")
+            self.command_list["voice"] = config.get(section="BOT", option="voice_command")
             self.chat.register_command(
                 self.command_list["voice"],
                 self._set_voice,
-                command_middleware=[ChannelUserCommandCooldown(self.config.get_command_cooldown("voice", "user"))],
+                command_middleware=[ChannelUserCommandCooldown(config.get_command_cooldown("voice", "user"))],
             )
         if self.chat.unregister_command(self.command_list["help"]):
-            self.command_list["help"] = self.config.get(section="BOT", option="help_command")
+            self.command_list["help"] = config.get(section="BOT", option="help_command")
             self.chat.register_command(
                 self.command_list["help"],
                 self._send_help_cmd,
-                command_middleware=[ChannelCommandCooldown(self.config.get_command_cooldown("help", "global"))],
+                command_middleware=[ChannelCommandCooldown(config.get_command_cooldown("help", "global"))],
             )
 
     def _update_say_cmd(self):
+        config = get_config(name="default")
         if self.chat.unregister_command(self.command_list["say"]):
-            self.command_list["say"] = self.config.get(section="BOT", option="speak_command")
+            self.command_list["say"] = config.get(section="BOT", option="speak_command")
             self.chat.register_command(
                 self.command_list["say"],
                 self._say,
                 command_middleware=[
                     UserRestriction(allowed_users=[x.name for x in self.session_mgr.session.party]),
-                    ChannelCommandCooldown(self.config.get_command_cooldown("speak", "global")),
-                    ChannelUserCommandCooldown(self.config.get_command_cooldown("speak", "user")),
+                    ChannelCommandCooldown(config.get_command_cooldown("speak", "global")),
+                    ChannelUserCommandCooldown(config.get_command_cooldown("speak", "user")),
                 ],
             )
 
@@ -194,11 +199,13 @@ class ChatController:
         if self.session_mgr:
             self.session_mgr.end()
         self.session_mgr.open()
+        config = get_config(name="default")
+
         self.chat.unregister_command(self.command_list["say"])
         self.chat.register_command(
             self.command_list["join"],
             self._add_user_to_queue,
-            command_middleware=[ChannelUserCommandCooldown(self.config.get_command_cooldown("join", "user"))],
+            command_middleware=[ChannelUserCommandCooldown(config.get_command_cooldown("join", "user"))],
         )
         self.send_message(f"Session started! Type {self.chat._prefix}{self.command_list['join']} to queue for the adventuring party", True)
         chat_on_session_open.trigger()
@@ -206,13 +213,14 @@ class ChatController:
     def _session_start_actions(self):
         self.chat.unregister_command(self.command_list["join"])
         party = [x.name for x in self.session_mgr.session.party]
+        config = get_config(name="default")
         self.chat.register_command(
             self.command_list["say"],
             self._say,
             command_middleware=[
                 UserRestriction(allowed_users=[x.name for x in self.session_mgr.session.party]),
-                ChannelCommandCooldown(self.config.get_command_cooldown("speak", "global")),
-                ChannelUserCommandCooldown(self.config.get_command_cooldown("speak", "user")),
+                ChannelCommandCooldown(config.get_command_cooldown("speak", "global")),
+                ChannelUserCommandCooldown(config.get_command_cooldown("speak", "user")),
             ],
         )
 
@@ -269,18 +277,18 @@ class ChatController:
     async def _get_voices(self, cmd: ChatCommand):
         param = cmd.parameter
         if param.upper().strip() == "11L":
-            param = SOURCE_11L
+            param = TTS_SOURCE.SOURCE_11L.value
         elif param.upper().strip() == "SE":
-            param = SOURCE_SE
-        if not param or param.lower().strip() not in SOURCES:
+            param = TTS_SOURCE.SOURCE_SE.value
+        if not param or param.lower().strip() not in [source.value for source in TTS_SOURCE]:
             await cmd.reply(
                 f"@{cmd.user.display_name} available TTS types are 'local', '11L', 'SE'. Try {self.chat._prefix}{self.command_list['voices']} <type>"
             )
             return
-        param = param.upper().strip()
+        param = param.lower().strip()
         msg = ""
 
-        tts = tts_instances.get(param.lower(), None)
+        tts = get_tts(TTS_SOURCE(param))
         msg = None if not tts else tts.voice_list_message()
         if not msg:
             return
@@ -298,12 +306,12 @@ class ChatController:
         voice_id = ""
 
         # Try each TTS
-        if param.startswith('se.'):
-            voice_id  = tts_instances.get(SOURCE_SE).search_for_voice_by_id(param)
+        if param.startswith("se."):
+            voice_id = get_tts(TTS_SOURCE.SOURCE_SE).search_for_voice_by_id(param)
         if not voice_id:
-            voice_id =  tts_instances.get(SOURCE_LOCAL).get_voice_id_by_friendly_name(param)
+            voice_id = get_tts(TTS_SOURCE.SOURCE_LOCAL).get_voice_id_by_friendly_name(param)
         if not voice_id:
-            voice =  tts_instances.get(SOURCE_11L).search_for_voice_by_id(param)
+            voice = get_tts(TTS_SOURCE.SOURCE_11L).search_for_voice_by_id(param)
             if voice:
                 voice_id = voice.voice_id
 

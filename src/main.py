@@ -8,14 +8,16 @@ from logging import getLogger
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 
-from initialize import args
-from tts import initialize_tts
+from initialize import _args as args # Also runs some initializing logic on import
+
+from helpers.instance_manager import init_cache, init_config
+from helpers.constants import TTS_SOURCE
+from tts import get_tts
 
 from twitch.utils import TwitchUtils
 from twitch.chat import ChatController
 
 import helpers.event as _event_module
-from helpers import TCDNDConfig as Config
 from helpers.utils import check_for_updates
 from ui.app import DesktopApp
 from server.app import ServerApp
@@ -43,6 +45,16 @@ if getattr(sys, "frozen", False):
     sys.path.insert(0, src_path)
 
 
+config_path = os.path.join(cwd, "config.ini")
+cache_dir = os.path.join(cwd, ".tcdnd-cache/")
+
+# Initialize config and cache
+config = init_config(name='default', path=config_path)
+cache = init_cache(name='default', path=cache_dir)
+
+if not config.has_option(section="CACHE", option="directory"):
+    config.set(section="CACHE", option="directory", value=cache_dir)
+
 def run_migrations():
     logger.info("Running DB Migrations...")
     if getattr(sys, "frozen", False):
@@ -66,24 +78,16 @@ async def run_db_init():
 
 asyncio.run(run_db_init())  # "DB-Setup"
 
-config_path = os.path.join(cwd, "config.ini")
-cache_dir = os.path.join(cwd, ".tcdnd-cache/")
-
-config = Config()
-config.setup(config_path)
-
 # Initialize TTS Engines
-initialize_tts(config)
+for source in TTS_SOURCE:
+    get_tts(source)
 
-if not config.has_option(section="CACHE", option="directory"):
-    config.set(section="CACHE", option="directory", value=cache_dir)
-
-twitch_utils = TwitchUtils(config, cache_dir)
+twitch_utils = TwitchUtils()
 
 session_mgr: SessionManager = SessionManager()
-chat: ChatController = ChatController(session_mgr, config)
+chat: ChatController = ChatController(session_mgr)
 
-server = ServerApp(config)
+server = ServerApp()
 
 APP_RUNNING = True
 
@@ -155,12 +159,12 @@ logger.info("Starting")
 
 
 async def run_server():
-    await server.run_task(host="0.0.0.0")
+    await server.run_task(host="0.0.0.0", port=config.getint(section="SERVER", option="port", fallback=5000))
 
 
 async def run_ui():
     global APP_RUNNING
-    app = DesktopApp(session_mgr, chat, config, twitch_utils)
+    app = DesktopApp(session_mgr, chat, twitch_utils)
     while app.running:
         await asyncio.sleep(1000/30/1000)
         app.update()

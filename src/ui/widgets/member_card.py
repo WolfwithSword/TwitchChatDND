@@ -4,15 +4,14 @@ from io import BytesIO
 import customtkinter as ctk
 import requests
 from PIL import Image
-from diskcache import Cache
 
 from custom_logger.logger import logger
 from data import Member
 from data.member import create_or_get_member, fetch_member, update_tts, delete_member
-from helpers import TCDNDConfig as Config
-from helpers.constants import SOURCE_11L, SOURCE_LOCAL
-from helpers.utils import run_coroutine_sync
-from tts import SOURCES, tts_instances
+from helpers.constants import TTS_SOURCE
+from helpers.instance_manager import get_config
+from helpers.utils import run_coroutine_sync, try_get_cache
+from tts import get_tts
 from chatdnd.events.chat_events import chat_on_party_modify
 from chatdnd.events.ui_events import ui_refresh_user, ui_request_member_refresh, on_external_member_change
 from chatdnd.events.session_events import session_refresh_member
@@ -30,7 +29,6 @@ class MemberCard(ctk.CTkFrame):
         member: Member,
         context_menu: CTkContextMenu,
         chat_ctrl: ChatController,
-        config: Config,
         width=160,
         height=200,
         textsize=12,
@@ -40,7 +38,6 @@ class MemberCard(ctk.CTkFrame):
         super().__init__(parent, width=width, height=height, *args, **kwargs)
         self.member: Member = member
         self.chat_ctrl = chat_ctrl
-        self.config: Config = config
         self.bg_image = None
         self.bg_label = None
         self.width = width
@@ -48,15 +45,6 @@ class MemberCard(ctk.CTkFrame):
         self.textsize = textsize
         self.context_menu = context_menu
         self.grid_propagate(False)
-
-        if config.getboolean(section="CACHE", option="enabled"):
-            cache_dir = config.get(section="CACHE", option="directory", fallback=None)
-            if not cache_dir:
-                self.cache = Cache()
-            else:
-                self.cache = Cache(directory=cache_dir)
-        else:
-            self.cache = None
 
         self.bg_label = None
 
@@ -108,16 +96,19 @@ class MemberCard(ctk.CTkFrame):
     def get_pfp_url_cache(self, url):
         response = None
         key = f"{url}.member.pfp"
-        if self.cache:
-            response = self.cache.get(key=key, default=None)
+
+        cache = try_get_cache('default')
+        if cache:
+            response = cache.get(key=key, default=None)
             logger.debug(f"Fetched {key} from cache")
             if response:
                 return response
 
         response = requests.get(url, timeout=10)
-        if response and self.cache:
-            self.cache.set(
-                key=key, expire=self.config.getint(section="CACHE", option="pfp_cache_expiry", fallback=7 * 24 * 60 * 60 * 2), value=response
+        if response and cache:
+            config = get_config('default')
+            cache.set(
+                key=key, expire=config.getint(section="CACHE", option="pfp_cache_expiry", fallback=7 * 24 * 60 * 60 * 2), value=response
             )
         return response
 
@@ -162,7 +153,7 @@ class MemberCard(ctk.CTkFrame):
 
     def open_edit_popup(self, event=None):
         self.member = run_coroutine_sync(fetch_member(name=self.member.name))
-        MemberEditCard(self.member, self.config)
+        MemberEditCard(self.member)
 
     def destroy(self):
         ui_refresh_user.removeListener(self._refresh_member)
@@ -172,14 +163,13 @@ class MemberCard(ctk.CTkFrame):
 class MemberEditCard(ctk.CTkToplevel):
     open_popup = None
 
-    def __init__(self, member: Member, config: Config):
+    def __init__(self, member: Member):
         if MemberEditCard.open_popup is not None:
             MemberEditCard.open_popup.focus_set()
             return
         super().__init__()
         MemberEditCard.open_popup = self
         self.member: Member = member
-        self.config: Config = config
         self.tts_options = []
         self.title(f"Edit {self.member.name.upper()}")
         self.geometry("400x400")
@@ -199,23 +189,25 @@ class MemberEditCard(ctk.CTkToplevel):
         self.label = ctk.CTkLabel(self, text="TTS Voice:")
         self.label.pack(pady=(20, 5))
 
-        current_source = SOURCE_LOCAL
+        current_source = TTS_SOURCE.SOURCE_LOCAL.value
 
         db_member = run_coroutine_sync(fetch_member(name=self.member.name))
         if db_member.preferred_tts_uid and db_member.preferred_tts:
             current_source = db_member.preferred_tts.source
 
         self.tts_source_var = ctk.StringVar(value=current_source)
-        valid_sources = SOURCES[:]
-        if not self.config.get(section="ELEVENLABS", option="api_key"):
-            valid_sources.remove(SOURCE_11L)
+
+        valid_sources = [source.value for source in TTS_SOURCE][:]
+        config = get_config('default')
+        if not config.get(section="ELEVENLABS", option="api_key"):
+            valid_sources.remove(TTS_SOURCE.SOURCE_11L.value)
         self.tts_source_dropdown = ctk.CTkOptionMenu(
             self,
             variable=self.tts_source_var,
 
         )
 
-        voices = tts_instances[current_source].get_voices()
+        voices = get_tts(TTS_SOURCE(current_source)).get_voices()
 
         self.tts_drop_frame = CTkScrollableDropdown(self.tts_source_dropdown, values=valid_sources, command=self._update_voicelist, height=300, width=160, alpha=1, button_height=30)
         self.tts_options = list(voices.keys())
@@ -244,7 +236,7 @@ class MemberEditCard(ctk.CTkToplevel):
         num_sessions_label.pack(pady=(20, 5))
 
     def _update_voicelist(self, choice):
-        voices = tts_instances[choice].get_voices()
+        voices = get_tts(TTS_SOURCE(choice)).get_voices()
         self.tts_options = list(voices.keys())
         self.tts_voice_drop_frame.configure(values=self.tts_options)
         if self.member.preferred_tts_uid and self.member.preferred_tts_uid in voices.values():
@@ -259,12 +251,13 @@ class MemberEditCard(ctk.CTkToplevel):
         self.tts_source_var.set(value=choice)
 
     def test_tts(self):
-        voice_id = tts_instances[self.tts_source_var.get()].get_voices()[self.tts_dropdown.get()]
-        tts_instances[self.tts_source_var.get()].test_speak(voice_id=voice_id)
+        tts = get_tts(TTS_SOURCE(self.tts_source_var.get()))
+        voice_id = tts.get_voices()[self.tts_dropdown.get()]
+        tts.test_speak(voice_id=voice_id)
 
     def save_changes(self):
         new_tts = self.tts_dropdown.get()
-        voices = tts_instances[self.tts_source_var.get()].get_voices()
+        voices = get_tts(TTS_SOURCE(self.tts_source_var.get())).get_voices()
         voice_id = voices[new_tts]
 
         asyncio.create_task(update_tts(self.member, voice_id))
