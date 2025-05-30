@@ -82,8 +82,8 @@ class StreamElementsTTS(TTS):
         else:
             logger.error(f"Could not request TTS from StreamElements. Error: {res.content}")
         _initial.seek(0)
-        audio = AudioSegment.from_file(_initial, format='mp3')
-        boosted = audio + self.config.getfloat(section='STREAMELEMENTS', option='boost_db', fallback=7.1) # dB
+        audio = AudioSegment.from_file(_initial, format="mp3")
+        boosted = audio + self.config.getfloat(section="STREAMELEMENTS", option="boost_db", fallback=6.2)  # dB
         boosted.export(output, format="mp3")
         output.seek(0)
         return output

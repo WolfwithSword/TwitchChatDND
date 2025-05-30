@@ -54,7 +54,7 @@ class TCDNDConfig(configparser.ConfigParser):
             },
             "DND": {"party_size": 4},
             "ELEVENLABS": {"api_key": "", "usage_warning": 500},
-            "STREAMELEMENTS": {"boost_db": 6.8},
+            "STREAMELEMENTS": {"boost_db": 6.2},
         }
 
         # Init config.ini file
