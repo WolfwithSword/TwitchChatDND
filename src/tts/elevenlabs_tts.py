@@ -57,7 +57,8 @@ class ElevenLabsTTS(TTS):
             try:
                 test_client = ElevenLabs(api_key=key)
                 # This will cause an exception if invalid api key
-                user_subscription = test_client.user.get_subscription()
+                test_client.user.subscription
+                user_subscription = test_client.user.subscription.get()
                 count = user_subscription.character_count
                 limit = user_subscription.character_limit
                 on_elevenlabs_subscription_update.trigger([count, limit])
@@ -115,7 +116,7 @@ class ElevenLabsTTS(TTS):
             yield (header + chunk, duration)
             chunk = output.read(chunk_size)
 
-        user_subscription = await self.client.user.get_subscription()
+        user_subscription = await self.client.user.subscription.get()
         count = user_subscription.character_count
         limit = user_subscription.character_limit
         on_elevenlabs_subscription_update.trigger([count, limit])
@@ -256,7 +257,7 @@ class ElevenLabsTTS(TTS):
                 audio = iter(audio)
 
                 try:
-                    user_subscription = client.user.get_subscription()
+                    user_subscription = client.user.subscription.get()
                     count = user_subscription.character_count
                     limit = user_subscription.character_limit
                     on_elevenlabs_subscription_update.trigger([count, limit])
