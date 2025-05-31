@@ -80,7 +80,7 @@ def get_config(name='default') -> Config:
 def init_config(name='default', path=None) -> Config:
     if name in _config_registry:
         return get_config(name)
-    if path is None or not os.path.isfile(path):
+    if path is None:
         logger.error(f"Attempted to initialize config [{name}] without invalid path: {path}.")
         return get_config(name)
 
