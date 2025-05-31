@@ -107,7 +107,7 @@ jobs:
         if: true && !startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
         run: |
           python -m pip install nuitka
-          python -m nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=images/logo.ico \
+          python -m nuitka --standalone --onefile --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
@@ -135,7 +135,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
         run: |
           python -m pip install nuitka
-          python -m nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=images/logo.ico \
+          python -m nuitka --standalone --onefile --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
@@ -157,6 +157,7 @@ jobs:
             --nofollow-import-to=jinja2.tests \
             --nofollow-import-to=werkzeug.test \
             --msvc=latest --assume-yes-for-downloads \
+            --windows-console-mode=disable \
             --jobs=4 --lto=no --output-filename=twitchchatdnd src/main.py
       - name: Save Nuitka build cache
         if: github.event_name != 'pull_request'
@@ -175,6 +176,10 @@ jobs:
           mv src/server/static/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server/static
           mv migrations/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
           mv alembic.ini dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/alembic.ini
+          
+          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.build
+          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist
+          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.onefile-build
 
 
       - name: Deploy Artifacts
