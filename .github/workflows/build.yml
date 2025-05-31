@@ -63,7 +63,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/pip
-          key: ${{ steps.cache-pip.outputs.cache-primary-key }}
+          key: ${{ matrix.os }}-pip-${{ hashFiles('requirements.txt') }}
 
       - name: Setup Env Vars
         run: |
@@ -106,7 +106,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           path: .nuitka-cache
-          key: nuitka-${{ matrix.os }}-${{ hashFiles('**/*.py', 'requirements.txt') }}
+          key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
           restore-keys: |
             ${{ matrix.os }}-nuitka-
       - name: Build with nuitka
@@ -145,7 +145,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .nuitka-cache
-          key: ${{ steps.cache-nuitka.outputs.cache-primary-key }}
+          key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
       - name: Copy Resources
         run: |
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
