@@ -48,7 +48,7 @@ jobs:
       - name: Debug Show Cache Directories
         run: |
           echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
-          ls .cache/
+          ls -alh .cache || echo "No .cache directory exists"
 
       - name: Setup Python
         uses: actions/setup-python@v5
