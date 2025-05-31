@@ -42,13 +42,13 @@ jobs:
       - name: Setup Cache Directories
         run: |
           echo "SETTING UP CACHE DIRECTORIES"
-          echo "NUITKA_CACHE_DIR=.cache/.nuitka" >> $GITHUB_ENV
-          mkdir .cache
-          mkdir .cache/.nuitka
+          echo "NUITKA_CACHE_DIR=/.cache/.nuitka" >> $GITHUB_ENV
+          mkdir /.cache
+          mkdir /.cache/.nuitka
       - name: Debug Show Cache Directories
         run: |
           echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
-          ls -alh .cache || echo "No .cache directory exists"
+          ls -alh /.cache || echo "No /.cache directory exists"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -95,12 +95,12 @@ jobs:
       #     --hidden-import=pyttsx4.drivers --hidden-import=pyttsx4.drivers.sapi5 \
       #     --distpath dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
       #     --name=twitchchatdnd src/main.py
-      - name: Cache Nuitka build
+      - name: Nuitka Cache
         uses: actions/cache@v4
         id: cache-nuitka
         if: github.event_name != 'pull_request'
         with:
-          path: .cache/.nuitka
+          path: /.cache/.nuitka
           key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
           restore-keys: |
             ${{ matrix.os }}-nuitka-
@@ -110,6 +110,7 @@ jobs:
           python -m pip install nuitka
           python -m nuitka --standalone --onefile --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
+            --include-module=importlib.metadata \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
@@ -135,6 +136,7 @@ jobs:
           python -m pip install nuitka
           python -m nuitka --standalone --onefile --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
+            --include-module=importlib.metadata \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
@@ -154,12 +156,6 @@ jobs:
             --windows-console-mode=attach \
             --msvc=latest --assume-yes-for-downloads \
             --jobs=4 --lto=no --output-filename=twitchchatdnd src/main.py
-      - name: Save Nuitka build cache
-        if: github.event_name != 'pull_request'
-        uses: actions/cache/save@v4
-        with:
-          path: .cache/.nuitka
-          key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
       - name: Copy Resources
         run: |
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
@@ -175,7 +171,6 @@ jobs:
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.build
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.onefile-build
-
 
       - name: Deploy Artifacts
         uses: actions/upload-artifact@v4
