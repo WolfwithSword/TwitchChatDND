@@ -39,6 +39,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ matrix.os }}-pip-${{ hashFiles('requirements.txt') }}
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -67,11 +73,23 @@ jobs:
 
       - name: Build with nuitka
         if: true && !startsWith(github.ref, 'refs/tags/')
-        run: python -m nuitka --standalone --onefile --windows-disable-console --windows-icon-from-ico=images/logo.ico --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ --output-filename=twitchchatdnd-nightly src/main.py
+        run: |
+          python -m nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=images/logo.ico \
+            --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
+            --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
+            --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
+            --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
+            --jobs=2 --output-filename=twitchchatdnd-nightly src/main.py
 
       - name: Release Build with nuitka
         if: startsWith(github.ref, 'refs/tags/')
-        run: python -m nuitka --standalone --onefile --windows-disable-console --windows-icon-from-ico=images/logo.ico --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ --output-filename=twitchchatdnd src/main.py
+        run: |
+          python -m nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=images/logo.ico \
+          --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
+          --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
+          --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
+          --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
+          --jobs=2 --output-filename=twitchchatdnd src/main.py
 
       - name: Copy Resources
         run: |
