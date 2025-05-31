@@ -42,9 +42,9 @@ jobs:
       - name: Setup Cache Directories
         run: |
           echo "SETTING UP CACHE DIRECTORIES"
-          echo "NUITKA_CACHE_DIR=${{ github.workspace }}/cache/.nuitka" >> $GITHUB_ENV
-          mkdir ${{ github.workspace }}/cache
-          mkdir ${{ github.workspace }}/cache/.nuitka
+          echo "NUITKA_CACHE_DIR=.cache/.nuitka" >> $GITHUB_ENV
+          mkdir .cache
+          mkdir .cache/.nuitka
       - name: Debug Show Cache Directories
         run: |
           echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
@@ -99,7 +99,7 @@ jobs:
         id: cache-nuitka
         if: github.event_name != 'pull_request'
         with:
-          path: ${{ github.workspace }}/cache/.nuitka
+          path: .cache/.nuitka
           key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
           restore-keys: |
             ${{ matrix.os }}-nuitka-
@@ -163,7 +163,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/cache/save@v4
         with:
-          path: ${{ github.workspace }}/cache/.nuitka
+          path: .cache/.nuitka
           key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
       - name: Copy Resources
         run: |
