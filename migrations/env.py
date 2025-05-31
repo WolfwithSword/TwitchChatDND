@@ -1,4 +1,4 @@
-
+import builtins
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -16,14 +16,14 @@ config = context.config
 import sys
 import os
 
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False) or getattr(builtins, "__compiled__", False):
     project_root = os.path.join(sys._MEIPASS, "src")
-    sys.path.insert(0, project_root) 
+    sys.path.insert(0, project_root)
 else:
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
-    sys.path.insert(0, project_root) 
+    sys.path.insert(0, project_root)
 if not os.environ.get("TCDND_DEBUG_MODE"):
-    os.environ['TCDND_DEBUG_MODE'] = '1'
+    os.environ["TCDND_DEBUG_MODE"] = "1"
 from data import Base, Voice, Member
 from custom_logger import logger
 
@@ -73,9 +73,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

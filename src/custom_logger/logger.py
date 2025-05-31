@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import builtins
 from logging.handlers import RotatingFileHandler, QueueHandler, QueueListener
 from queue import Queue
 
@@ -49,7 +50,7 @@ class CustomLogger:
 
         self.log_queue = Queue()
 
-        is_frozen = getattr(sys, "frozen", False)
+        is_frozen = getattr(sys, "frozen", False) or getattr(builtins, '__compiled__', False)
 
         if is_frozen:
             # if getattr(sys, '_MEIPASS', False):
