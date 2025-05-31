@@ -42,9 +42,9 @@ jobs:
       - name: Setup Cache Directories
         run: |
           echo "SETTING UP CACHE DIRECTORIES"
-          echo "NUITKA_CACHE_DIR=${{ github.action_path }}/cache/nuitka" >> $GITHUB_ENV
-          mkdir ${{ github.action_path }}/cache
-          mkdir ${{ github.action_path }}/cache/nuitka
+          echo "NUITKA_CACHE_DIR=${{ github.workspace }}/cache/.nuitka" >> $GITHUB_ENV
+          mkdir ${{ github.workspace }}/cache
+          mkdir ${{ github.workspace }}/cache/.nuitka
       - name: Debug Show Cache Directories
         run: |
           echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
@@ -99,7 +99,7 @@ jobs:
         id: cache-nuitka
         if: github.event_name != 'pull_request'
         with:
-          path: ${{env.NUITKA_CACHE_DIR}}
+          path: ${{ github.workspace }}/cache/.nuitka
           key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
           restore-keys: |
             ${{ matrix.os }}-nuitka-
@@ -163,7 +163,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/cache/save@v4
         with:
-          path: ${{env.NUITKA_CACHE_DIR}}
+          path: ${{ github.workspace }}/cache/.nuitka
           key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
       - name: Copy Resources
         run: |
@@ -176,7 +176,7 @@ jobs:
           mv src/server/static/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server/static
           mv migrations/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
           mv alembic.ini dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/alembic.ini
-          
+
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.build
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.onefile-build
