@@ -116,6 +116,18 @@ jobs:
             --nofollow-import-to=sqlalchemy.dialects.mssql \
             --nofollow-import-to=sqlalchemy.dialects.mysql \
             --nofollow-import-to=sqlalchemy.dialects.postgresql \
+            --nofollow-import-to=sqlalchemy.testing \
+            --nofollow-import-to=alembic.util.compat \
+            --nofollow-import-to=alembic.autogenerate.render \
+            --nofollow-import-to=alembic.autogenerate.compare \
+            --nofollow-import-to=alembic.ddl.oracle \
+            --nofollow-import-to=alembic.ddl.mssql \
+            --nofollow-import-to=alembic.ddl.mysql \
+            --nofollow-import-to=alembic.ddl.postgresql \
+            --nofollow-import-to=quart.testing \
+            --nofollow-import-to=quart.cli \
+            --nofollow-import-to=jinja2.tests \
+            --nofollow-import-to=werkzeug.test \
             --msvc=latest --show-progress --assume-yes-for-downloads \
             --jobs=4 --lto=no --output-filename=twitchchatdnd-nightly src/main.py
 
@@ -124,16 +136,28 @@ jobs:
         run: |
           python -m pip install nuitka
           python -m nuitka --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=images/logo.ico \
-          --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
-          --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
-          --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
-          --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
-          --nofollow-import-to=sqlalchemy.dialects.oracle \
-          --nofollow-import-to=sqlalchemy.dialects.mssql \
-          --nofollow-import-to=sqlalchemy.dialects.mysql \
-          --nofollow-import-to=sqlalchemy.dialects.postgresql \
-          --msvc=latest --show-progress --assume-yes-for-downloads \
-          --jobs=4 --lto=no --output-filename=twitchchatdnd src/main.py
+            --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
+            --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
+            --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
+            --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
+            --nofollow-import-to=sqlalchemy.dialects.oracle \
+            --nofollow-import-to=sqlalchemy.dialects.mssql \
+            --nofollow-import-to=sqlalchemy.dialects.mysql \
+            --nofollow-import-to=sqlalchemy.dialects.postgresql \
+            --nofollow-import-to=sqlalchemy.testing \
+            --nofollow-import-to=alembic.util.compat \
+            --nofollow-import-to=alembic.autogenerate.render \
+            --nofollow-import-to=alembic.autogenerate.compare \
+            --nofollow-import-to=alembic.ddl.oracle \
+            --nofollow-import-to=alembic.ddl.mssql \
+            --nofollow-import-to=alembic.ddl.mysql \
+            --nofollow-import-to=alembic.ddl.postgresql \
+            --nofollow-import-to=quart.testing \
+            --nofollow-import-to=quart.cli \
+            --nofollow-import-to=jinja2.tests \
+            --nofollow-import-to=werkzeug.test \
+            --msvc=latest --assume-yes-for-downloads \
+            --jobs=4 --lto=no --output-filename=twitchchatdnd src/main.py
       - name: Save Nuitka build cache
         if: github.event_name != 'pull_request'
         uses: actions/cache/save@v4
