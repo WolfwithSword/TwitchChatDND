@@ -126,7 +126,6 @@ jobs:
             --nofollow-import-to=jinja2.tests \
             --nofollow-import-to=werkzeug.test \
             --nofollow-import-to=email \
-            --windows-console-mode=attach \
             --msvc=latest --show-progress --assume-yes-for-downloads \
             --jobs=4 --lto=no --output-filename=twitchchatdnd-nightly src/main.py
 
