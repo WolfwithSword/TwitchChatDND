@@ -43,7 +43,7 @@ jobs:
         id: cache-pip
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
+          path: ${{ runner.temp }}/pip-cache
           key: ${{ matrix.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ matrix.os }}-pip-
@@ -55,6 +55,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
+          echo "PIP_CACHE_DIR=${{ runner.temp }}/pip-cache" >> $GITHUB_ENV
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
@@ -62,7 +63,7 @@ jobs:
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: ~/.cache/pip
+          path: ${{ runner.temp }}/pip-cache
           key: ${{ matrix.os }}-pip-${{ hashFiles('requirements.txt') }}
 
       - name: Setup Env Vars
@@ -122,7 +123,7 @@ jobs:
             --nofollow-import-to=sqlalchemy.dialects.mssql \
             --nofollow-import-to=sqlalchemy.dialects.mysql \
             --nofollow-import-to=sqlalchemy.dialects.postgresql \
-            --msvc=latest --extra-cflags="/Zm250" \
+            --msvc=latest \
             --cache-dir=.nuitka-cache --jobs=4 --lto=no --output-filename=twitchchatdnd-nightly src/main.py
 
       - name: Release Build with nuitka
@@ -138,7 +139,7 @@ jobs:
           --nofollow-import-to=sqlalchemy.dialects.mssql \
           --nofollow-import-to=sqlalchemy.dialects.mysql \
           --nofollow-import-to=sqlalchemy.dialects.postgresql \
-          --msvc=latest --extra-cflags="/Zm250" \
+          --msvc=latest \
           --cache-dir=.nuitka-cache --jobs=4 --lto=no --output-filename=twitchchatdnd src/main.py
       - name: Save Nuitka build cache
         if: github.event_name != 'pull_request'
