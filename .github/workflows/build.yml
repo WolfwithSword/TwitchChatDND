@@ -43,8 +43,10 @@ jobs:
         run: |
           echo "PIP_CACHE_DIR=${{ github.action_path }}/pip/cache" >> $GITHUB_ENV
           echo "NUITKA_CACHE_DIR=${{ github.action_path }}/nuitka/cache" >> $GITHUB_ENV
-          echo "pip cache dir -> ${PIP_CACHE_DIR}"
-          echo "nuitka cache dir -> ${NUIKA_CACHE_DIR}"
+      - name: Debug Show Cache Directories
+        run: |
+          echo "pip cache dir -> $PIP_CACHE_DIR"
+          echo "nuitka cache dir -> $NUIKA_CACHE_DIR"
       - name: Cache pip
         id: cache-pip
         uses: actions/cache@v4
