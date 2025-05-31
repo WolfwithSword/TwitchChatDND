@@ -116,7 +116,7 @@ jobs:
             --nofollow-import-to=sqlalchemy.dialects.mssql \
             --nofollow-import-to=sqlalchemy.dialects.mysql \
             --nofollow-import-to=sqlalchemy.dialects.postgresql \
-            --msvc=latest --show-progress --no-dependency-downloads=no \
+            --msvc=latest --show-progress --assume-yes-for-downloads \
             --jobs=4 --lto=no --output-filename=twitchchatdnd-nightly src/main.py
 
       - name: Release Build with nuitka
@@ -132,7 +132,7 @@ jobs:
           --nofollow-import-to=sqlalchemy.dialects.mssql \
           --nofollow-import-to=sqlalchemy.dialects.mysql \
           --nofollow-import-to=sqlalchemy.dialects.postgresql \
-          --msvc=latest --show-progress --no-dependency-downloads=no \
+          --msvc=latest --show-progress --assume-yes-for-downloads \
           --jobs=4 --lto=no --output-filename=twitchchatdnd src/main.py
       - name: Save Nuitka build cache
         if: github.event_name != 'pull_request'
