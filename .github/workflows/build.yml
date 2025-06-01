@@ -115,7 +115,7 @@ jobs:
           python -m pip install nuitka
           python -m nuitka --standalone --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
-            --enable-plugin=pkg-resources --include-module=importlib.metadata \
+            --enable-plugin=pkg-resources --include-module=importlib.metadata --include-module=importlib.metadata._meta \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
@@ -141,7 +141,7 @@ jobs:
           python -m pip install nuitka
           python -m nuitka --standalone --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
-            --enable-plugin=pkg-resources --include-module=importlib.metadata \
+            --enable-plugin=pkg-resources --include-module=importlib.metadata --include-module=importlib.metadata._meta \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
