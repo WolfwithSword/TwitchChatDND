@@ -1,5 +1,7 @@
+from logging import getLogger
 import webbrowser
 import re
+import os
 
 from PIL import Image
 from win11toast import notify
@@ -16,11 +18,15 @@ from tts import get_tts
 from data.voices import delete_voice
 from data.member import remove_tts
 
+logger = getLogger("ChatDND")
+
 from chatdnd.events.ui_events import (
     ui_settings_twitch_channel_update_event,
     ui_on_startup_complete,
     ui_request_floating_notif,
     ui_fetch_update_check_event,
+    ui_remove_floating_notif,
+    ui_settings_twitch_auth_update_event
 )
 
 from chatdnd.events.chat_events import chat_bot_on_connect
@@ -42,7 +48,7 @@ class SettingsTab:
     def __init__(self, parent, twitch_utils: TwitchUtils):
         self.parent = parent
         self.twitch_utils = twitch_utils
-        config = get_config('default')
+        config = get_config("default")
 
         self.startup = True
 
@@ -79,7 +85,7 @@ class SettingsTab:
         logo_label.bind("<Enter>", lambda e: logo_label.configure(cursor="hand2"))
         logo_label.bind("<Leave>", lambda e: logo_label.configure(cursor=""))
 
-        CTkToolTip(logo_label, message="Open ChatDnD Page", delay = 0.3, corner_radius=50)
+        CTkToolTip(logo_label, message="Open ChatDnD Page", delay=0.3, corner_radius=50)
         ###########################
 
         row += 1
@@ -99,6 +105,10 @@ class SettingsTab:
 
         button = ctk.CTkButton(self.parent, height=30, text="Save", command=self._update_bot_settings)
         button.grid(row=row, column=column, padx=10, pady=(20, 10))
+        row += 1
+        reauth_button = ctk.CTkButton(self.parent, height=30, text="ReAuth", command=self._reauth_bot)
+        reauth_button.grid(row=row, column=column, padx=10, pady=(20, 10))
+        row -= 1
         column += 1
         chan_label = ctk.CTkLabel(self.parent, text="Channel")
         chan_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
@@ -428,7 +438,7 @@ class SettingsTab:
             self._update_voice_list()
 
     def _update_websrv_settings(self):
-        config = get_config('default')
+        config = get_config("default")
         config.set(section="SERVER", option="port", value=str(self.port_var.get()))
         config.write_updates()
         ui_request_floating_notif.trigger(
@@ -442,7 +452,7 @@ class SettingsTab:
         # TODO Look into if we can restart task for webserver
 
     def _update_el_settings(self):
-        config = get_config('default')
+        config = get_config("default")
         config.set(section="ELEVENLABS", option="api_key", value=str(self.el_api_key_var.get()))
         config.set(
             section="ELEVENLABS",
@@ -452,9 +462,15 @@ class SettingsTab:
         config.write_updates()
         request_elevenlabs_connect.trigger()
 
+    def _reauth_bot(self):
+        file_path = get_resource_path("../../user_token.json")
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+        ui_settings_twitch_auth_update_event.trigger()
+
     def _update_bot_settings(self):
         self.chat_con_label.configure(text="Chat Connecting...", text_color="yellow")
-        config = get_config('default')
+        config = get_config("default")
         config.set(section="BOT", option="prefix", value=str(self.prefix_var.get()))
         config.set(
             section="BOT",
@@ -477,7 +493,7 @@ class SettingsTab:
 
     def _update_elevenlabs_usage(self, count: int, limit: int):
         self.e11labs_usage_label.configure(text=f"{limit-count}/{limit} | {abs(((limit-count)*100)//limit)}% Remaining")
-        config = get_config('default')
+        config = get_config("default")
         if limit - count < config.getint(section="ELEVENLABS", option="usage_warning", fallback=500):
             ui_request_floating_notif.trigger(
                 [
@@ -519,7 +535,8 @@ class SettingsTab:
             self.add_v_button.configure(state="normal")
             self.add_import_button.configure(state="normal")
             if not self.startup:
-                ui_request_floating_notif.trigger(["ElevenLabs connected!", NotifyType.INFO])
+                ui_request_floating_notif.trigger(["ElevenLabs connected!", NotifyType.INFO, {"name": "elevenlabs_connect"}])
+                ui_remove_floating_notif.trigger(["elevenlabs_disconnect", "contains"])
         else:
             self.e11labs_con_label.configure(text="ElevenLabs Disconnected", text_color="red")
             self.add_v_button.configure(state="disabled")
@@ -532,26 +549,31 @@ class SettingsTab:
             self.del_v_button.configure(state="disabled")
             self.preview_v_button.configure(state="disabled")
             self.parent.focus()
-            config = get_config('default')
+            config = get_config("default")
             if config.get(section="ELEVENLABS", option="api_key") and not self.startup:
-                ui_request_floating_notif.trigger(["ElevenLabs disconnected!", NotifyType.WARNING])
+                ui_request_floating_notif.trigger(["ElevenLabs disconnected!", NotifyType.WARNING, {"name": "elevenlabs_disconnect"}])
+                ui_remove_floating_notif.trigger(["elevenlabs_connect", "contains"])
 
     def _update_bot_connection(self, status: bool):
         if status:
             self.chat_con_label.configure(text="Chat Connected", text_color="green")
             if not self.startup:
-                ui_request_floating_notif.trigger(["Twitch Chatbot connected!", NotifyType.INFO])
+                ui_request_floating_notif.trigger(["Twitch Chatbot connected!", NotifyType.INFO, {"name": "twitch_connect"}])
+                ui_remove_floating_notif.trigger(["twitch_disconnect", "contains"])
             self.twitch_channel.configure(text=("None" if not self.twitch_utils.channel else self.twitch_utils.channel.display_name))
         else:
             self.chat_con_label.configure(text="Chat Disconnected", text_color="red")
             self.twitch_channel.configure(text="None")
             if not self.startup:
-                ui_request_floating_notif.trigger(["Twitch Chatbot disconnected!", NotifyType.WARNING])
+                ui_request_floating_notif.trigger(["Twitch Chatbot disconnected!", NotifyType.WARNING, {"name": "twitch_disconnect"}])
+                ui_remove_floating_notif.trigger(["twitch_connect", "contains"])
             self.parent.focus()
 
     def _update_twitch_connect(self, status: bool, twitchutils=None):
         if status:
             self.t_con_label.configure(text="Twitch Connected", text_color="green")
+            # Remove notif if open
+            ui_remove_floating_notif.trigger(["twitch_auth", "equals"])
         else:
             self.t_con_label.configure(text="Twitch Disconnected", text_color="red")
             self.parent.focus()

@@ -46,7 +46,7 @@ class ChatController:
         self.twitch: Twitch = None
         self.chat: Chat = None
 
-        self.session_mgr = session_mgr
+        self.session_mgr: SessionManager = session_mgr
         self.command_list = {}
 
         ui_settings_twitch_channel_update_event.addListener(self.start)
@@ -253,6 +253,9 @@ class ChatController:
         # TODO idea, provide other stats like vip/mod/status/badges? Can always fetch from twitchAPI especially since we cache for a week, aka no risk
         # TODO we also want a default pfp perhaps if non exists
         member = await create_or_get_member(name=cmd.user.display_name, pfp_url=user.profile_image_url)
+        if member.blacklisted:
+            # Silently skip the blacklisted user. Blacklisters users can not join a queue, but can be manually added and use other commands
+            return
         if member not in self.session_mgr.session.queue:
             if member.time_since_last_session and datetime.datetime.now() - datetime.timedelta(minutes=10) < member.time_since_last_session:
                 await cmd.reply(f"{member.name} was in a session too recently!")
@@ -321,6 +324,8 @@ class ChatController:
             user: TwitchUser = await self.twitch_utils.get_user_by_name(username=cmd.user.name)
             if user:
                 member = await create_or_get_member(name=cmd.user.display_name, pfp_url=user.profile_image_url)
+                # if member.blacklisted:
+                #     return
                 await update_tts(member, voice_id)
                 msg = f"@{cmd.user.display_name} Successfully set TTS voice!"
             else:

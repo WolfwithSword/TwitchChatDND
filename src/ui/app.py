@@ -2,7 +2,7 @@ import customtkinter as ctk
 
 from _version import __version__ as app_version
 from chatdnd import SessionManager
-from chatdnd.events.ui_events import ui_request_floating_notif
+from chatdnd.events.ui_events import ui_request_floating_notif, ui_remove_floating_notif
 from custom_logger.logger import logger
 from helpers.utils import get_resource_path
 from twitch.chat import ChatController
@@ -54,6 +54,8 @@ class DesktopApp(ctk.CTk):
         self.context_menu = CTkContextMenu(self)
 
         self._setup_tabs()
+
+        ui_remove_floating_notif.addListener(self.notification_manager.remove_by_name)
 
     def _setup_tabs(self):
 
