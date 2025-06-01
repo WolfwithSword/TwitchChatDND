@@ -119,7 +119,7 @@ jobs:
       - name: Debug Show Cache Directories
         run: |
           echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
-          echo "nuitka cache dir -> $CLCACHE"
+          echo "nuitka cache dir -> $CLCACHE_DIR"
           ls -alh ./cache || echo "No ./cache directory exists"
           ls -alh ./cache./clcache || echo "No ./cache/.clcache directory exists"
       - name: Build with nuitka
@@ -190,15 +190,15 @@ jobs:
           mv src/server/static/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server/static
           mv migrations/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
           mv alembic.ini dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/alembic.ini
-
-          if ! ls dist/twitchchatdnd/*.exe 2>/dev/null; then
-            mv dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist/* dist/twitchchatdnd/
-          else
-              echose 'dist setup...'
-          fi
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.build
-          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist
-          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.onefile-build
+#          if ! ls dist/twitchchatdnd/*.exe 2>/dev/null; then
+#            mv dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist/* dist/twitchchatdnd/
+#          else
+#              echose 'dist setup...'
+#          fi
+
+#          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist
+#          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.onefile-build
 
       - name: Deploy Artifacts
         uses: actions/upload-artifact@v4
