@@ -39,22 +39,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Cache Directories
+        run: |
+          echo "SETTING UP CACHE DIRECTORIES"
+          echo "NUITKA_CACHE_DIR=./cache/.nuitka" >> $GITHUB_ENV
+          echo "CLCACHE_DIR=./cache/.clcache" >> $GITHUB_ENV
+          mkdir ./cache
+          mkdir ./cache/.nuitka
+          mkdir ./cache/.clcache
+      - name: Debug Show Cache Directories
+        run: |
+          echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
+          echo "nuitka cache dir -> $CLCACHE_DIR"
+          ls -alh ./cache || echo "No ./cache directory exists"
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
 
       - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip pyinstaller
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-
       - name: Setup Env Vars
         run: |
           echo "REF_NAME=${GITHUB_REF_NAME//\//_}" >> $GITHUB_ENV
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
-          
+
       - name: Release Versioning
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -66,13 +80,105 @@ jobs:
           echo "__version__='nightly-${{github.sha}}'" > src/_version.py
 
       - name: Build with pyinstaller
-        if: true && !startsWith(github.ref, 'refs/tags/')
-        run: pyinstaller --icon=images/logo.ico --noconsole --onefile --collect-binaries python312.dll --hidden-import=aiosqlite --hidden-import=pyttsx4.drivers --hidden-import=pyttsx4.drivers.sapi5 --distpath dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ --name=twitchchatdnd-nightly src/main.py
+        if: true && !startsWith(github.ref, 'refs/tags/') && github.event_name == 'pull_request'
+        run: |
+          python -m pip install pyinstaller
+          pyinstaller --icon=images/logo.ico --noconsole --onefile \
+          --collect-binaries python312.dll --hidden-import=aiosqlite \
+          --hidden-import=pyttsx4.drivers --hidden-import=pyttsx4.drivers.sapi5 \
+          --distpath dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
+          --name=twitchchatdnd-nightly src/main.py
 
-      - name: Release Build with pyinstaller
-        if: startsWith(github.ref, 'refs/tags/')
-        run: pyinstaller --icon=images/logo.ico --noconsole --onefile --collect-binaries python312.dll --hidden-import=aiosqlite --hidden-import=pyttsx4.drivers --hidden-import=pyttsx4.drivers.sapi5 --distpath dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ --name=twitchchatdnd src/main.py
-      
+      # - name: Release Build with pyinstaller
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   run: |
+      #     python -m pip install pyinstaller
+      #     pyinstaller --icon=images/logo.ico --noconsole --onefile \
+      #     --collect-binaries python312.dll --hidden-import=aiosqlite \
+      #     --hidden-import=pyttsx4.drivers --hidden-import=pyttsx4.drivers.sapi5 \
+      #     --distpath dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
+      #     --name=twitchchatdnd src/main.py
+      - name: Nuitka Cache
+        uses: actions/cache@v4
+        id: cache-nuitka
+        if: github.event_name != 'pull_request'
+        with:
+          path: ./cache/.nuitka
+          key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-nuitka-
+      - name: CL Cache
+        uses: actions/cache@v4
+        id: cache-cl
+        if: github.event_name != 'pull_request'
+        with:
+          path: ./cache/.clcache
+          key: ${{ matrix.os }}-clcache-${{ hashFiles('**/*.py', 'requirements.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-clcache-
+      - name: Debug Show Cache Directories
+        run: |
+          echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
+          echo "nuitka cache dir -> $CLCACHE_DIR"
+          ls -alh ./cache || echo "No ./cache directory exists"
+          ls -alh ./cache./clcache || echo "No ./cache/.clcache directory exists"
+      - name: Build with nuitka
+        if: true && !startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
+        run: |
+          python -m pip install nuitka
+          python -m nuitka --standalone --windows-icon-from-ico=images/logo.ico \
+            --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
+            --enable-plugin=pkg-resources --include-module=importlib.metadata --include-module=importlib.metadata._meta \
+            --include-module=importlib.metadata._collections \
+            --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
+            --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
+            --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
+            --nofollow-import-to=sqlalchemy.dialects.oracle \
+            --nofollow-import-to=sqlalchemy.dialects.mssql \
+            --nofollow-import-to=sqlalchemy.dialects.mysql \
+            --nofollow-import-to=sqlalchemy.dialects.postgresql \
+            --nofollow-import-to=sqlalchemy.testing \
+            --nofollow-import-to=alembic.util.compat \
+            --nofollow-import-to=alembic.testing \
+            --nofollow-import-to=alembic.autogenerate.render \
+            --nofollow-import-to=alembic.autogenerate.compare \
+            --nofollow-import-to=quart.testing \
+            --nofollow-import-to=quart.cli \
+            --nofollow-import-to=jinja2.tests \
+            --nofollow-import-to=werkzeug.test \
+            --nofollow-import-to=email \
+            --msvc=latest --show-modules --assume-yes-for-downloads \
+            --jobs=4 --lto=no --output-filename=twitchchatdnd-nightly src/main.py
+
+      - name: Release Build with nuitka
+        if: startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
+        run: |
+          python -m pip install nuitka
+          python -m nuitka --standalone --windows-icon-from-ico=images/logo.ico \
+            --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
+            --enable-plugin=pkg-resources --include-module=importlib.metadata --include-module=importlib.metadata._meta \
+
+            --include-module=importlib.metadata._collections \
+            --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
+            --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
+            --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
+            --nofollow-import-to=sqlalchemy.dialects.oracle \
+            --nofollow-import-to=sqlalchemy.dialects.mssql \
+            --nofollow-import-to=sqlalchemy.dialects.mysql \
+            --nofollow-import-to=sqlalchemy.dialects.postgresql \
+            --nofollow-import-to=sqlalchemy.testing \
+            --nofollow-import-to=alembic.util.compat \
+            --nofollow-import-to=alembic.testing \
+            --nofollow-import-to=alembic.autogenerate.render \
+            --nofollow-import-to=alembic.autogenerate.compare \
+            --nofollow-import-to=quart.testing \
+            --nofollow-import-to=quart.cli \
+            --nofollow-import-to=jinja2.tests \
+            --nofollow-import-to=werkzeug.test \
+            --nofollow-import-to=email \
+            --windows-console-mode=attach \
+            --msvc=latest --assume-yes-for-downloads \
+            --jobs=4 --lto=no --output-filename=twitchchatdnd src/main.py
       - name: Copy Resources
         run: |
           mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
@@ -84,7 +190,15 @@ jobs:
           mv src/server/static/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server/static
           mv migrations/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
           mv alembic.ini dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/alembic.ini
+          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.build
+#          if ! ls dist/twitchchatdnd/*.exe 2>/dev/null; then
+#            mv dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist/* dist/twitchchatdnd/
+#          else
+#              echose 'dist setup...'
+#          fi
 
+#          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist
+#          rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.onefile-build
 
       - name: Deploy Artifacts
         uses: actions/upload-artifact@v4
@@ -111,7 +225,7 @@ jobs:
 
       - name: Release Artifacts
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
         with:
           token: ${{ secrets.TCDND_GITHUB_TOKEN }}
           files: twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip
@@ -122,14 +236,14 @@ jobs:
           mkdir twitchchatdnd-${{env.REF_NAME}}
           mv dist/twitchchatdnd/${{matrix.os}}-${{env.REF_NAME}}/* twitchchatdnd-${{env.REF_NAME}}/
           zip -r twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip twitchchatdnd-${{env.REF_NAME}}
-  
+
       - name: Nightly Rename - Windows
         if: true && !startsWith(github.ref, 'refs/tags/') && startsWith(matrix.os, 'windows')
         run: |
           mkdir twitchchatdnd-${{env.REF_NAME}}
           mv dist/twitchchatdnd/${{matrix.os}}-${{env.REF_NAME}}/* twitchchatdnd-${{env.REF_NAME}}/
           7z a twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip twitchchatdnd-${{env.REF_NAME}}
-  
+
       - name: Release nightly
         uses: softprops/action-gh-release@v2
         if: true && startsWith(github.ref_name, 'main')
@@ -138,5 +252,5 @@ jobs:
           prerelease: true
           name: nightly
           tag_name: nightly
-          files: twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip 
+          files: twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip
           fail_on_unmatched_files: true

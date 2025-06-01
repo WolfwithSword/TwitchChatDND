@@ -1,5 +1,6 @@
 import os
 import sys
+import builtins
 
 import asyncio
 from queue import Queue
@@ -31,7 +32,10 @@ from chatdnd.events.ui_events import (
 
 from db import initialize_database
 
-assert args is not None
+#assert args is not None
+if args is None:
+    raise Exception("Could not initialize")
+
 logger = getLogger("ChatDND")
 cwd = os.getcwd()
 
@@ -39,7 +43,7 @@ _tasks = Queue()
 
 setattr(sys.modules[_event_module.__name__], "_TASK_QUEUE", _tasks)
 
-if getattr(sys, "frozen", False):
+if getattr(sys, "frozen", False) or getattr(builtins, '__compiled__', False):
     base_path = sys._MEIPASS
     src_path = os.path.join(base_path, "src")
     sys.path.insert(0, src_path)
@@ -60,7 +64,7 @@ if not config.has_option(section="CACHE", option="directory"):
 
 def run_migrations():
     logger.info("Running DB Migrations...")
-    if getattr(sys, "frozen", False):
+    if getattr(sys, "frozen", False) or getattr(builtins, '__compiled__', False):
         alembic_cfg = AlembicConfig(os.path.join(cwd, "alembic.ini"))
         script_location = os.path.join(cwd, "migrations")
     else:

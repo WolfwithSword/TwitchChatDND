@@ -65,7 +65,9 @@ class DesktopApp(ctk.CTk):
         home = HomeTab(home_tab, self.chat_ctrl, self.context_menu)
         users = UsersTab(users_tab, self.chat_ctrl, self.context_menu)
         settings = SettingsTab(settings_tab, self.twitch_utils)
-        assert all([home, users, settings])
+        #assert all([home, users, settings])
+        if not all([home, users, settings]):
+            raise Exception("GUI Could not be fully rendered")
 
     def button_callback(self):
         logger.info("Test")

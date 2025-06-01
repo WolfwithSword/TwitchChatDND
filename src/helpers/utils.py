@@ -1,5 +1,6 @@
 import os
 import sys
+import builtins
 import asyncio
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -15,7 +16,7 @@ T = TypeVar("T")
 
 def get_resource_path(relative_path, from_resources: bool = False):
     # Get absolute path to a resource, frozen or local (relative to helpers/utils.py)
-    if getattr(sys, "frozen", False):
+    if getattr(sys, "frozen", False) or getattr(builtins, "__compiled__", False):
         base_path = sys._MEIPASS
         if from_resources:
             relative_path = relative_path.replace("../", "")
@@ -85,5 +86,5 @@ def check_for_updates():
 def try_get_cache(name="default") -> Cache | None:
     config = get_config(name)
     if config.getboolean(section="CACHE", option="enabled"):
-       return get_cache(name)
+        return get_cache(name)
     return None

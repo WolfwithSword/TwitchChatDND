@@ -295,8 +295,8 @@ class CTkSegmentedButton(CTkFrame):
             self._buttons_dict[value].grid(row=0, column=index, sticky="nsew")
 
     def _create_buttons_from_values(self):
-        assert len(self._buttons_dict) == 0
-        assert len(self._value_list) > 0
+        # assert len(self._buttons_dict) == 0
+        # assert len(self._value_list) > 0
 
         for index, value in enumerate(self._value_list):
             self._buttons_dict[value] = self._create_button(index, value)
