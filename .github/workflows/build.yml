@@ -147,7 +147,6 @@ jobs:
             --nofollow-import-to=jinja2.tests \
             --nofollow-import-to=werkzeug.test \
             --nofollow-import-to=email \
-            --noinclude-hard-imports=importlib.metadata \
             --msvc=latest --show-modules --assume-yes-for-downloads \
             --jobs=4 --lto=no --output-filename=twitchchatdnd-nightly src/main.py
 
@@ -178,7 +177,6 @@ jobs:
             --nofollow-import-to=werkzeug.test \
             --nofollow-import-to=email \
             --windows-console-mode=attach \
-            --noinclude-hard-imports=importlib.metadata \
             --msvc=latest --assume-yes-for-downloads \
             --jobs=4 --lto=no --output-filename=twitchchatdnd src/main.py
       - name: Copy Resources
