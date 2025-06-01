@@ -85,9 +85,10 @@ class ElevenLabsTTS(TTS):
         if not voice_id or not self.client:
             return
 
-        async def fetch_stream(client, text, voice_id, model, _format):
+        # Idea for future, refactor TTS classes to return the direct stream to overlay
+        async def fetch_stream(client: AsyncElevenLabs, text, voice_id, model, _format):
             output = io.BytesIO()
-            async for chunk in client.text_to_speech.convert_as_stream(text=text, voice_id=voice_id, model_id=model, output_format=_format):
+            async for chunk in client.text_to_speech.stream(text=text, voice_id=voice_id, model_id=model, output_format=_format, ):
                 output.write(chunk)
             output.seek(0)
             return output
