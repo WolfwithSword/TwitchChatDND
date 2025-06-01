@@ -108,9 +108,9 @@ jobs:
         if: true && !startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
         run: |
           python -m pip install nuitka
-          python -m nuitka --standalone --onefile --windows-icon-from-ico=images/logo.ico \
+          python -m nuitka --onefile --onefile-no-dll --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
-            --include-module=importlib.metadata \
+            --enable-plugin=pkg-resources --include-module=importlib.metadata \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
@@ -134,9 +134,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
         run: |
           python -m pip install nuitka
-          python -m nuitka --standalone --onefile --windows-icon-from-ico=images/logo.ico \
+          python -m nuitka --onefile --onefile-no-dll  --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
-            --include-module=importlib.metadata \
+            --enable-plugin=pkg-resources --include-module=importlib.metadata \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
