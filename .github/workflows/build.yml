@@ -104,11 +104,16 @@ jobs:
           key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
           restore-keys: |
             ${{ matrix.os }}-nuitka-
+      - name: Debug Show Cache Directories
+        run: |
+          echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
+          ls -alh ./cache || echo "No ./cache directory exists"
+          ls -alh ./cache/.nuitka || echo "No ./cache/.nuitka directory exists"
       - name: Build with nuitka
         if: true && !startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
         run: |
           python -m pip install nuitka
-          python -m nuitka --onefile --onefile-no-dll --windows-icon-from-ico=images/logo.ico \
+          python -m nuitka --standalone --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
             --enable-plugin=pkg-resources --include-module=importlib.metadata \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
@@ -134,7 +139,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
         run: |
           python -m pip install nuitka
-          python -m nuitka --onefile --onefile-no-dll  --windows-icon-from-ico=images/logo.ico \
+          python -m nuitka --standalone --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
             --enable-plugin=pkg-resources --include-module=importlib.metadata \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
