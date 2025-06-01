@@ -42,7 +42,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
           cache: 'pip'
 
       - name: Install Python dependencies
@@ -81,6 +81,8 @@ jobs:
           --distpath ${{env.DIST_PATH}}/ \
           --name="$EXEC_NAME" src/main.py
 
+          echo "Built $EXEC_NAME to ${{env.DIST_PATH}}"
+
 
       - name: Copy Resources
         run: |
@@ -113,6 +115,7 @@ jobs:
           else
             zip -r twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip twitchchatdnd-${{env.REF_NAME}}
           fi
+          echo "Packaged twitchchatdnd-${{env.REF_NAME}}"
 
       - name: Release Artifacts
         uses: softprops/action-gh-release@v2
