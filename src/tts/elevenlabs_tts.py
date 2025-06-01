@@ -230,7 +230,8 @@ class ElevenLabsTTS(TTS):
 
         key = f"11l.preview.{voice_id}"
         audio = None
-        if cache := try_get_cache("default"):
+        cache = try_get_cache("default")
+        if cache is not None:
             audio_l = cache.get(key=key, default=None)
             if audio_l:
                 audio = iter(audio_l)
@@ -244,7 +245,7 @@ class ElevenLabsTTS(TTS):
                     on_elevenlabs_connect.trigger([False])  # needed?
                     return
                 audio = list(client.text_to_speech.convert(text=text, voice_id=voice_id, model_id=MODEL))
-                if cache := try_get_cache("default"):
+                if cache is not None:
                     cache.set(
                         key=key,
                         expire=config.getint(
