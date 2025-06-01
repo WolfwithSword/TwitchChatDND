@@ -42,13 +42,13 @@ jobs:
       - name: Setup Cache Directories
         run: |
           echo "SETTING UP CACHE DIRECTORIES"
-          echo "NUITKA_CACHE_DIR=/.cache/.nuitka" >> $GITHUB_ENV
-          mkdir /.cache
-          mkdir /.cache/.nuitka
+          echo "NUITKA_CACHE_DIR=./cache/.nuitka" >> $GITHUB_ENV
+          mkdir ./cache
+          mkdir ./cache/.nuitka
       - name: Debug Show Cache Directories
         run: |
           echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
-          ls -alh /.cache || echo "No /.cache directory exists"
+          ls -alh ./cache || echo "No ./cache directory exists"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -100,7 +100,7 @@ jobs:
         id: cache-nuitka
         if: github.event_name != 'pull_request'
         with:
-          path: /.cache/.nuitka
+          path: ./cache/.nuitka
           key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
           restore-keys: |
             ${{ matrix.os }}-nuitka-
@@ -226,3 +226,9 @@ jobs:
           tag_name: nightly
           files: twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip
           fail_on_unmatched_files: true
+
+      - name: Debug Show Cache Directories
+        run: |
+          echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
+          ls -alh ./cache || echo "No ./cache directory exists"
+          ls -alh ./cache/.nuitka || echo "No ./cache/.nuitka directory exists"
