@@ -20,7 +20,7 @@ class TCDNDConfig(configparser.ConfigParser):
 
     def _setup_option(self, section: str, option: str, value: str) -> bool:
         _needs_init = False
-        if not self.get(section=section, option=option, fallback=None):
+        if not self.has_option(section=section, option=option):
             _needs_init = True
             self.set(section=section, option=option, value=str(value))
         return _needs_init
@@ -61,15 +61,17 @@ class TCDNDConfig(configparser.ConfigParser):
         needs_init = False
 
         for section in list(_defaults.keys()):
-            needs_init = needs_init or self._setup_section(section)
+            init_sect = self._setup_section(section)
+            needs_init = needs_init or init_sect
             for key, value in _defaults[section].items():
-                needs_init = needs_init or self._setup_option(section=section, option=key, value=value)
+                init_opt = self._setup_option(section=section, option=key, value=value)
+                needs_init = needs_init or init_opt
 
         if needs_init:
             self.write_updates()
 
     @property
-    def twitch_auth(self) -> tuple[str, str]:
+    def twitch_auth(self) -> str:
         return _client_id.strip()
 
     @property
