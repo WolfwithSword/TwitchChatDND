@@ -43,11 +43,14 @@ jobs:
         run: |
           echo "SETTING UP CACHE DIRECTORIES"
           echo "NUITKA_CACHE_DIR=./cache/.nuitka" >> $GITHUB_ENV
+          echo "CLCACHE_DIR=./cache/.clcache" >> $GITHUB_ENV
           mkdir ./cache
           mkdir ./cache/.nuitka
+          mkdir ./cache/.clcache
       - name: Debug Show Cache Directories
         run: |
           echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
+          echo "nuitka cache dir -> $CLCACHE_DIR"
           ls -alh ./cache || echo "No ./cache directory exists"
 
       - name: Setup Python
@@ -104,11 +107,21 @@ jobs:
           key: ${{ matrix.os }}-nuitka-${{ hashFiles('**/*.py', 'requirements.txt') }}
           restore-keys: |
             ${{ matrix.os }}-nuitka-
+      - name: CL Cache
+        uses: actions/cache@v4
+        id: cache-cl
+        if: github.event_name != 'pull_request'
+        with:
+          path: ./cache/.clcache
+          key: ${{ matrix.os }}-clcache-${{ hashFiles('**/*.py', 'requirements.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-clcache-
       - name: Debug Show Cache Directories
         run: |
           echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
+          echo "nuitka cache dir -> $CLCACHE"
           ls -alh ./cache || echo "No ./cache directory exists"
-          ls -alh ./cache/.nuitka || echo "No ./cache/.nuitka directory exists"
+          ls -alh ./cache./clcache || echo "No ./cache/.clcache directory exists"
       - name: Build with nuitka
         if: true && !startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request'
         run: |
@@ -116,6 +129,7 @@ jobs:
           python -m nuitka --standalone --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
             --enable-plugin=pkg-resources --include-module=importlib.metadata --include-module=importlib.metadata._meta \
+            --include-module=importlib.metadata._collections \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
@@ -125,6 +139,7 @@ jobs:
             --nofollow-import-to=sqlalchemy.dialects.postgresql \
             --nofollow-import-to=sqlalchemy.testing \
             --nofollow-import-to=alembic.util.compat \
+            --nofollow-import-to=alembic.testing \
             --nofollow-import-to=alembic.autogenerate.render \
             --nofollow-import-to=alembic.autogenerate.compare \
             --nofollow-import-to=quart.testing \
@@ -132,7 +147,7 @@ jobs:
             --nofollow-import-to=jinja2.tests \
             --nofollow-import-to=werkzeug.test \
             --nofollow-import-to=email \
-            --msvc=latest --show-progress --assume-yes-for-downloads \
+            --msvc=latest --show-modules --assume-yes-for-downloads \
             --jobs=4 --lto=no --output-filename=twitchchatdnd-nightly src/main.py
 
       - name: Release Build with nuitka
@@ -142,6 +157,8 @@ jobs:
           python -m nuitka --standalone --windows-icon-from-ico=images/logo.ico \
             --enable-plugin=tk-inter --include-module=aiosqlite --include-module=pyttsx4.drivers --include-module=pyttsx4.drivers.sapi5 \
             --enable-plugin=pkg-resources --include-module=importlib.metadata --include-module=importlib.metadata._meta \
+
+            --include-module=importlib.metadata._collections \
             --output-dir=dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_streaming_with_timestamps* \
             --nofollow-import-to=elevenlabs.text_to_speech.types.body_text_to_speech_with_timestamps* \
@@ -231,9 +248,3 @@ jobs:
           tag_name: nightly
           files: twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip
           fail_on_unmatched_files: true
-
-      - name: Debug Show Cache Directories
-        run: |
-          echo "nuitka cache dir -> $NUITKA_CACHE_DIR"
-          ls -alh ./cache || echo "No ./cache directory exists"
-          ls -alh ./cache/.nuitka || echo "No ./cache/.nuitka directory exists"
