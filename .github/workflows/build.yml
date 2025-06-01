@@ -168,6 +168,7 @@ jobs:
             --nofollow-import-to=sqlalchemy.dialects.postgresql \
             --nofollow-import-to=sqlalchemy.testing \
             --nofollow-import-to=alembic.util.compat \
+            --nofollow-import-to=alembic.testing \
             --nofollow-import-to=alembic.autogenerate.render \
             --nofollow-import-to=alembic.autogenerate.compare \
             --nofollow-import-to=quart.testing \
@@ -190,6 +191,11 @@ jobs:
           mv migrations/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
           mv alembic.ini dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/alembic.ini
 
+          if ! ls dist/twitchchatdnd/*.exe 2>/dev/null; then
+            mv dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist/* dist/twitchchatdnd/
+          else
+              echose 'dist setup...'
+          fi
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.build
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.dist
           rm -rf dist/twitchchatdnd/${{ matrix.os }}-${{ env.REF_NAME }}/main.onefile-build
