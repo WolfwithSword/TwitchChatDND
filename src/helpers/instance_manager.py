@@ -90,7 +90,7 @@ def init_config(name='default', path=None) -> Config:
     _config_store[name] = config
     return config
 
-def reload_cache(name='default'):
+def reload_config(name='default'):
     if name in _config_registry:
         config = get_config(name)
         config.setup(_config_registry.get(name))

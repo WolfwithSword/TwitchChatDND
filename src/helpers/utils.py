@@ -85,5 +85,5 @@ def check_for_updates():
 def try_get_cache(name="default") -> Cache | None:
     config = get_config(name)
     if config.getboolean(section="CACHE", option="enabled"):
-       return get_cache(name)
+        return get_cache(name)
     return None
