@@ -42,7 +42,8 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
+          cache: 'pip'
 
       - name: Install Python dependencies
         run: |
@@ -52,38 +53,48 @@ jobs:
       - name: Setup Env Vars
         run: |
           echo "REF_NAME=${GITHUB_REF_NAME//\//_}" >> $GITHUB_ENV
+          echo "DIST_PATH=dist/twitchchatdnd/${{ matrix.os }}-${GITHUB_REF_NAME//\//_}" >> $GITHUB_ENV
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
-          
-      - name: Release Versioning
-        if: startsWith(github.ref, 'refs/tags/')
+
+      - name: Versioning
         run: |
-          echo "__version__='${{env.REF_NAME}}'" > src/_version.py
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            B_VERSION="${{env.REF_NAME}}"
+          else
+            B_VERSION="nightly-${{github.sha}}"
+          fi
+          echo "__version__='${B_VERSION}'" > src/_version.py
 
-      - name: Nightly Versioning
-        if: true && !startsWith(github.ref, 'refs/tags/')
+      - name: Pyinstaller Build
         run: |
-          echo "__version__='nightly-${{github.sha}}'" > src/_version.py
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            EXEC_NAME="twitchchatdnd"
+          else
+            EXEC_NAME="twitchchatdnd-nightly"
+          fi
 
-      - name: Build with pyinstaller
-        if: true && !startsWith(github.ref, 'refs/tags/')
-        run: pyinstaller --icon=images/logo.ico --noconsole --onefile --collect-binaries python312.dll --hidden-import=aiosqlite --hidden-import=pyttsx4.drivers --hidden-import=pyttsx4.drivers.sapi5 --distpath dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ --name=twitchchatdnd-nightly src/main.py
+          pyinstaller \
+          --icon=images/logo.ico --noconsole --onefile \
+          --collect-binaries python312.dll --hidden-import=aiosqlite \
+          --hidden-import=pyttsx4.drivers --hidden-import=pyttsx4.drivers.sapi5 \
+          --distpath ${{env.DIST_PATH}}/ \
+          --name="$EXEC_NAME" src/main.py
 
-      - name: Release Build with pyinstaller
-        if: startsWith(github.ref, 'refs/tags/')
-        run: pyinstaller --icon=images/logo.ico --noconsole --onefile --collect-binaries python312.dll --hidden-import=aiosqlite --hidden-import=pyttsx4.drivers --hidden-import=pyttsx4.drivers.sapi5 --distpath dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/ --name=twitchchatdnd src/main.py
-      
+          echo "Built $EXEC_NAME to ${{env.DIST_PATH}}"
+
+
       - name: Copy Resources
         run: |
-          mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
-          mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources
-          mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/images
-          mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server
-          mkdir dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server/static
-          mv images/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/images
-          mv src/server/static/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/resources/server/static
-          mv migrations/* dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/migrations
-          mv alembic.ini dist/twitchchatdnd/${{ matrix.os }}-${{env.REF_NAME}}/alembic.ini
+          mkdir ${{env.DIST_PATH}}/migrations
+          mkdir ${{env.DIST_PATH}}/resources
+          mkdir ${{env.DIST_PATH}}/resources/images
+          mkdir ${{env.DIST_PATH}}/resources/server
+          mkdir ${{env.DIST_PATH}}/resources/server/static
+          mv images/* ${{env.DIST_PATH}}/resources/images
+          mv src/server/static/* ${{env.DIST_PATH}}/resources/server/static
+          mv migrations/* ${{env.DIST_PATH}}/migrations
+          mv alembic.ini ${{env.DIST_PATH}}/alembic.ini
 
 
       - name: Deploy Artifacts
@@ -91,23 +102,20 @@ jobs:
         if: true && !startsWith(github.ref, 'refs/tags/')
         with:
           name: twitchchatdnd-${{matrix.os}}-latest
-          path: dist/twitchchatdnd/${{matrix.os}}-${{env.REF_NAME}}/
+          path: ${{env.DIST_PATH}}/
           if-no-files-found: error
           retention-days: 20
 
-      - name: Release Rename
-        if: startsWith(github.ref, 'refs/tags/') && !startsWith(matrix.os, 'windows')
+      - name: Rename and Package
         run: |
           mkdir twitchchatdnd-${{env.REF_NAME}}
-          mv dist/twitchchatdnd/${{matrix.os}}-${{env.REF_NAME}}/* twitchchatdnd-${{env.REF_NAME}}/
-          zip -r twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip twitchchatdnd-${{env.REF_NAME}}
-
-      - name: Release Rename - Windows
-        if: startsWith(github.ref, 'refs/tags/') && startsWith(matrix.os, 'windows')
-        run: |
-          mkdir twitchchatdnd-${{env.REF_NAME}}
-          mv dist/twitchchatdnd/${{matrix.os}}-${{env.REF_NAME}}/* twitchchatdnd-${{env.REF_NAME}}/
-          7z a twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip twitchchatdnd-${{env.REF_NAME}}
+          mv ${{env.DIST_PATH}}/* twitchchatdnd-${{env.REF_NAME}}/
+          if [[ "${{ matrix.os }}" == windows ]]; then
+            7z a twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip twitchchatdnd-${{env.REF_NAME}}
+          else
+            zip -r twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip twitchchatdnd-${{env.REF_NAME}}
+          fi
+          echo "Packaged twitchchatdnd-${{env.REF_NAME}}"
 
       - name: Release Artifacts
         uses: softprops/action-gh-release@v2
@@ -116,21 +124,7 @@ jobs:
           token: ${{ secrets.TCDND_GITHUB_TOKEN }}
           files: twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip
 
-      - name: Nightly Release Rename
-        if: true && !startsWith(github.ref, 'refs/tags/') && !startsWith(matrix.os, 'windows')
-        run: |
-          mkdir twitchchatdnd-${{env.REF_NAME}}
-          mv dist/twitchchatdnd/${{matrix.os}}-${{env.REF_NAME}}/* twitchchatdnd-${{env.REF_NAME}}/
-          zip -r twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip twitchchatdnd-${{env.REF_NAME}}
-  
-      - name: Nightly Rename - Windows
-        if: true && !startsWith(github.ref, 'refs/tags/') && startsWith(matrix.os, 'windows')
-        run: |
-          mkdir twitchchatdnd-${{env.REF_NAME}}
-          mv dist/twitchchatdnd/${{matrix.os}}-${{env.REF_NAME}}/* twitchchatdnd-${{env.REF_NAME}}/
-          7z a twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip twitchchatdnd-${{env.REF_NAME}}
-  
-      - name: Release nightly
+      - name: (Nightly) Release Artifacts
         uses: softprops/action-gh-release@v2
         if: true && startsWith(github.ref_name, 'main')
         with:
@@ -138,5 +132,5 @@ jobs:
           prerelease: true
           name: nightly
           tag_name: nightly
-          files: twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip 
+          files: twitchchatdnd-${{matrix.os}}-${{env.REF_NAME}}.zip
           fail_on_unmatched_files: true

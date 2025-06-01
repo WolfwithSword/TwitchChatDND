@@ -51,7 +51,7 @@ cache_dir = os.path.join(cwd, ".tcdnd-cache/")
 # Initialize config and cache
 config = init_config(name='default', path=config_path)
 
-if config.has_option(section="CACHE", option="directory"):
+if config.has_section('CACHE') and config.has_option(section="CACHE", option="directory"):
     cache_dir = config.get(section='CACHE', option='directory')
 cache = init_cache(name='default', path=cache_dir)
 

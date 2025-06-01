@@ -71,9 +71,9 @@ def get_config(name='default') -> Config:
     if name in _config_store:
         return _config_store.get(name)
     config = Config()
-    path = _config_registry.get(name)
-    if path:
-        config.setup(path)
+    # path = _config_registry.get(name)
+    # if path:
+    #     config.setup(path)
     _config_store[name] = config
     return config
 
