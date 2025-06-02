@@ -463,7 +463,8 @@ class SettingsTab:
         request_elevenlabs_connect.trigger()
 
     def _reauth_bot(self):
-        file_path = get_resource_path("../../user_token.json")
+        file_path = get_resource_path("../../user_token.json", from_root=True)
+        logger.info(f"Attempting to remove twitch auth from: {file_path}")
         if os.path.isfile(file_path):
             os.remove(file_path)
         ui_settings_twitch_auth_update_event.trigger()
