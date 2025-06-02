@@ -1,4 +1,5 @@
 import asyncio
+import atexit
 import datetime
 from twitchAPI.chat import Chat, ChatCommand, EventData, Twitch
 from twitchAPI.chat.middleware import (
@@ -54,7 +55,18 @@ class ChatController:
         on_active_party_update.addListener(self._update_say_cmd)
         chat_force_party_start_setup.addListener(self._session_start_actions)
 
+        atexit.register(self.on_exit)
+
+    def on_exit(self):
+        if self.chat and self.chat.is_connected():
+            try:
+                self.chat.stop()
+            except Exception as e:
+                logger.warning(f"Ignored connection error on chat shutdown: {e}")
+            self.chat = None
+
     async def start(self, status: bool = None, twitch_utils: TwitchUtils = None, wait_tries: int = 5):
+
         if not twitch_utils:
             raise Exception("Twitch instance is not instantiated")
 
@@ -78,6 +90,8 @@ class ChatController:
 
         chat_on_channel_fetch.trigger([True])
         chat_bot_on_connect.trigger([False])
+
+        self.on_exit()
         self.chat = await Chat(self.twitch)
         self.chat.register_event(ChatEvent.READY, self._on_ready)
 

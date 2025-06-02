@@ -43,7 +43,14 @@ class TwitchUtils:
         token, refresh = await code_flow.wait_for_auth_complete()
         return token, refresh
 
+
+    async def on_exit(self):
+        if self.twitch:
+            await self.twitch.close()
+            self.twitch = None
+
     async def start(self):
+        await self.on_exit()
         self.twitch = None
         scopes = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT, AuthScope.MODERATOR_MANAGE_ANNOUNCEMENTS]  # TODO may need more as time goes on
         config = get_config("default")
