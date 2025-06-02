@@ -37,14 +37,14 @@ class Event:
             args = [args]
         for func in self.__listeners:
             try:
-                if inspect.iscoroutinefunction(func):
+                if func and inspect.iscoroutinefunction(func):
                     try:
                         loop = asyncio.get_running_loop()
                         loop.create_task(self._run_async_func(func, *args))
                     except Exception:
                         loop = asyncio.new_event_loop()
                         loop.run_until_complete(self._run_async_func(func, *args))
-                else:
+                elif func:
                     func(*args)
             except RuntimeError as e:
                 if "main thread is not in main loop" in str(e):
@@ -57,6 +57,7 @@ class Event:
 
     async def _run_async_func(self, func, *args):
         try:
-            await func(*args)
+            if func:
+                await func(*args)
         except Exception as e:
             logger.error(f"Async Event Listener error: {e}")

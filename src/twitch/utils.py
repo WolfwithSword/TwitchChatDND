@@ -14,7 +14,8 @@ from helpers.utils import try_get_cache
 from helpers.instance_manager import get_config
 
 from chatdnd.events.twitchutils_events import twitchutils_twitch_on_connect_event
-from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_refresh_user, ui_request_member_refresh
+from chatdnd.events.ui_events import ui_settings_twitch_auth_update_event, ui_refresh_user, ui_request_member_refresh, ui_request_floating_notif
+from ui.widgets.CTkFloatingNotifications.notification_type import NotifyType
 
 
 class TwitchUtils:
@@ -30,11 +31,26 @@ class TwitchUtils:
         code_flow = CodeFlow(twitch, target_scope)
         # Local callback didnt work, but CodeFlow does. Will open browser for it, then store locally due to StorageHelper
         code, url = await code_flow.get_code()
+        msg = f"Authorizing with Twitch. Verify code matches: {code}"
+        ui_request_floating_notif.trigger(
+            [
+                msg,
+                NotifyType.INFO,
+                {"duration": 180000, "name": "twitch_auth"},
+            ]
+        )
         webbrowser.open(url, new=0, autoraise=True)
         token, refresh = await code_flow.wait_for_auth_complete()
         return token, refresh
 
+
+    async def on_exit(self):
+        if self.twitch:
+            await self.twitch.close()
+            self.twitch = None
+
     async def start(self):
+        await self.on_exit()
         self.twitch = None
         scopes = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT, AuthScope.MODERATOR_MANAGE_ANNOUNCEMENTS]  # TODO may need more as time goes on
         config = get_config("default")

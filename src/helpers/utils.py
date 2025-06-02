@@ -13,13 +13,16 @@ from helpers.instance_manager import get_cache, get_config
 T = TypeVar("T")
 
 
-def get_resource_path(relative_path, from_resources: bool = False):
+def get_resource_path(relative_path, from_resources: bool = False, from_root: bool = False):
     # Get absolute path to a resource, frozen or local (relative to helpers/utils.py)
     if getattr(sys, "frozen", False):
         base_path = sys._MEIPASS
         if from_resources:
             relative_path = relative_path.replace("../", "")
             base_path = os.path.join(os.path.abspath("."), "resources")
+        elif from_root:
+            relative_path = relative_path.replace("../", "")
+            base_path = os.path.abspath(".")
         else:
             if not os.path.isfile(os.path.join(base_path, relative_path)):
                 if not os.path.isdir(os.path.join(base_path, relative_path)):

@@ -7,7 +7,7 @@ from PIL import Image
 
 from custom_logger.logger import logger
 from data import Member
-from data.member import create_or_get_member, fetch_member, update_tts, delete_member
+from data.member import create_or_get_member, fetch_member, set_member_blacklist, update_tts, delete_member
 from helpers.constants import TTS_SOURCE
 from helpers.instance_manager import get_config
 from helpers.utils import run_coroutine_sync, try_get_cache
@@ -37,6 +37,8 @@ class MemberCard(ctk.CTkFrame):
     ):
         super().__init__(parent, width=width, height=height, *args, **kwargs)
         self.member: Member = member
+        if self.member.blacklisted is None:
+            self.member.blacklisted = False
         self.chat_ctrl = chat_ctrl
         self.bg_image = None
         self.bg_label = None
@@ -47,6 +49,7 @@ class MemberCard(ctk.CTkFrame):
         self.grid_propagate(False)
 
         self.bg_label = None
+        self.name_label = None
 
         self.create_card()
 
@@ -58,35 +61,49 @@ class MemberCard(ctk.CTkFrame):
     def create_card(self):
         self.setup_pfp()
 
-        name_label = ctk.CTkLabel(
+        self.name_label = ctk.CTkLabel(
             self,
             text=self.member.name.upper(),
             font=("Arial", self.textsize),
             wraplength=self.width - 10,
         )
-        name_label.grid(row=2, column=0, sticky="s", padx=5, pady=(2, 10))
-        name_label.bind("<Button-1>", self.open_edit_popup)
+        if self.member.blacklisted:
+            self.name_label.configure(text_color='red')
+        self.name_label.grid(row=2, column=0, sticky="s", padx=5, pady=(2, 10))
+        self.name_label.bind("<Button-1>", self.open_edit_popup)
 
     def show_ctx_menu(self, event):
         try:
+            in_party = self.member in self.chat_ctrl.session_mgr.session.party
             if self.context_menu.type != ContextMenuTypes.MEMBER_CARD:
                 self.context_menu.clear_contents()
-                self.context_menu.add_command(label="Add to party", command=lambda: chat_on_party_modify.trigger([self.member, False]))
-                self.context_menu.add_command(label="Kick from party", command=lambda: chat_on_party_modify.trigger([self.member, True]))
+                self.context_menu.add_command(label="Add to party" if not in_party else "Kick from party",
+                                              command=lambda: chat_on_party_modify.trigger([self.member, in_party]))
+                self.context_menu.add_separator()
+                self.context_menu.add_command(label="Whitelist" if self.member.blacklisted else "Blacklist", command=self.toggle_blacklist)
                 self.context_menu.add_separator()
                 self.context_menu.add_command(label="Refresh", command=lambda: ui_request_member_refresh.trigger([self.member]))
                 self.context_menu.add_separator()
                 self.context_menu.add_command(label="Delete", command=self.delete_user)
             else:
                 children = self.context_menu.prep_for_rewrite()
-                children[0].configure(command=lambda: chat_on_party_modify.trigger([self.member, False]))
-                children[1].configure(command=lambda: chat_on_party_modify.trigger([self.member, True]))
-                children[3].configure(command=lambda: ui_request_member_refresh.trigger([self.member]))
-                children[5].configure(command=self.delete_user)
+                children[0].configure(command=lambda: chat_on_party_modify.trigger([self.member, in_party]), text="Add to party" if not in_party else "Kick from party")
+                children[2].configure(command=self.toggle_blacklist, text="Whitelist" if self.member.blacklisted else "Blacklist")
+                children[4].configure(command=lambda: ui_request_member_refresh.trigger([self.member]))
+                children[6].configure(command=self.delete_user)
             self.context_menu.type = ContextMenuTypes.MEMBER_CARD
             self.context_menu.after(50, self.context_menu.popup(event.x_root, event.y_root))
         finally:
             self.context_menu.grab_release()
+
+    def toggle_blacklist(self):
+        is_blacklisted = self.member.blacklisted if self.member.blacklisted is not None else False
+        run_coroutine_sync(set_member_blacklist(self.member, not is_blacklisted if is_blacklisted is not None else True))
+        if is_blacklisted:
+            self.name_label.configure(text_color='#D9D9D9')
+        else:
+            self.name_label.configure(text_color='red')
+        self.member.blacklisted = not is_blacklisted
 
     def delete_user(self):
         chat_on_party_modify.trigger([self.member, True])
@@ -150,6 +167,13 @@ class MemberCard(ctk.CTkFrame):
             self.member = member
             self.setup_pfp()
             session_refresh_member.trigger([member])
+
+        elif member:
+            self.member = member
+            if self.member.blacklisted:
+                self.name_label.configure(text_color='red')
+            else:
+                self.name_label.configure(text_color='#D9D9D9')
 
     def open_edit_popup(self, event=None):
         self.member = run_coroutine_sync(fetch_member(name=self.member.name))

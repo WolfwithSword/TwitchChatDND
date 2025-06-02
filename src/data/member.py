@@ -2,7 +2,8 @@ import datetime
 from typing import List
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Integer, JSON, asc, ForeignKey, null, DateTime
+from sqlalchemy import String, Integer, JSON, asc, ForeignKey, null, DateTime, Boolean
+from sqlalchemy import false as _false
 from sqlalchemy.future import select
 
 from data.base import Base
@@ -24,6 +25,7 @@ class Member(Base):
     preferred_tts_uid: Mapped[str] = mapped_column(ForeignKey("voices.uid"), nullable=True)
     preferred_tts: Mapped[Voice] = relationship("Voice", lazy="subquery")
     time_since_last_session: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    blacklisted: Mapped[bool] = mapped_column(Boolean, nullable=True, server_default=_false(), default=False)
 
     data: Mapped[dict] = mapped_column(JSON, default=dict)
     # We can store arbitrary data in here if we need extra columns and stuff later, just need to be safe with checking
@@ -94,6 +96,15 @@ async def delete_member(member: Member):
         _member = _member.scalar_one()
         if _member:
             await session.delete(_member)
+            await session.commit()
+
+
+async def set_member_blacklist(member: Member, blacklist: bool):
+    async with async_session() as session:
+        _member = await session.execute(select(Member).where(Member.name == member.name))
+        _member = _member.scalar_one()
+        if _member:
+            _member.blacklisted = blacklist
             await session.commit()
 
 

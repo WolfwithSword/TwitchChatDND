@@ -216,6 +216,12 @@ async def run_all():
         await asyncio.gather(*tasks)
     except Exception as e:
         logger.error(f"An exception has occurred: {e}")
+    finally:
+        try:
+            if twitch_utils:
+                await twitch_utils.on_exit()
+        except Exception:
+            pass
         for task in tasks:
             task.cancel()
             try:

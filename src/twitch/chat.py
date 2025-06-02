@@ -1,4 +1,5 @@
 import asyncio
+import atexit
 import datetime
 from twitchAPI.chat import Chat, ChatCommand, EventData, Twitch
 from twitchAPI.chat.middleware import (
@@ -46,7 +47,7 @@ class ChatController:
         self.twitch: Twitch = None
         self.chat: Chat = None
 
-        self.session_mgr = session_mgr
+        self.session_mgr: SessionManager = session_mgr
         self.command_list = {}
 
         ui_settings_twitch_channel_update_event.addListener(self.start)
@@ -54,7 +55,18 @@ class ChatController:
         on_active_party_update.addListener(self._update_say_cmd)
         chat_force_party_start_setup.addListener(self._session_start_actions)
 
+        atexit.register(self.on_exit)
+
+    def on_exit(self):
+        if self.chat and self.chat.is_connected():
+            try:
+                self.chat.stop()
+            except Exception as e:
+                logger.warning(f"Ignored connection error on chat shutdown: {e}")
+            self.chat = None
+
     async def start(self, status: bool = None, twitch_utils: TwitchUtils = None, wait_tries: int = 5):
+
         if not twitch_utils:
             raise Exception("Twitch instance is not instantiated")
 
@@ -78,6 +90,8 @@ class ChatController:
 
         chat_on_channel_fetch.trigger([True])
         chat_bot_on_connect.trigger([False])
+
+        self.on_exit()
         self.chat = await Chat(self.twitch)
         self.chat.register_event(ChatEvent.READY, self._on_ready)
 
@@ -253,6 +267,9 @@ class ChatController:
         # TODO idea, provide other stats like vip/mod/status/badges? Can always fetch from twitchAPI especially since we cache for a week, aka no risk
         # TODO we also want a default pfp perhaps if non exists
         member = await create_or_get_member(name=cmd.user.display_name, pfp_url=user.profile_image_url)
+        if member.blacklisted:
+            # Silently skip the blacklisted user. Blacklisters users can not join a queue, but can be manually added and use other commands
+            return
         if member not in self.session_mgr.session.queue:
             if member.time_since_last_session and datetime.datetime.now() - datetime.timedelta(minutes=10) < member.time_since_last_session:
                 await cmd.reply(f"{member.name} was in a session too recently!")
@@ -321,6 +338,8 @@ class ChatController:
             user: TwitchUser = await self.twitch_utils.get_user_by_name(username=cmd.user.name)
             if user:
                 member = await create_or_get_member(name=cmd.user.display_name, pfp_url=user.profile_image_url)
+                # if member.blacklisted:
+                #     return
                 await update_tts(member, voice_id)
                 msg = f"@{cmd.user.display_name} Successfully set TTS voice!"
             else:
