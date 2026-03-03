@@ -55,6 +55,7 @@ class TCDNDConfig(configparser.ConfigParser):
             "DND": {"party_size": 4},
             "ELEVENLABS": {"api_key": "", "usage_warning": 500},
             "STREAMELEMENTS": {"boost_db": 6.2},
+            "POCKET_TTS": {"voices_dir": "voices", "model_path": ""},
         }
 
         # Init config.ini file

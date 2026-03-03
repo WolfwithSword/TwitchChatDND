@@ -342,8 +342,83 @@ class SettingsTab:
         on_elevenlabs_connect.addListener(self._update_elevenlabs_connection)
         on_elevenlabs_subscription_update.addListener(self._update_elevenlabs_usage)
         request_elevenlabs_connect.trigger()
+        
+        # Pocket TTS event listeners
+        from chatdnd.events.tts_events import (
+            on_pocket_tts_connect,
+        )
+        on_pocket_tts_connect.addListener(self._update_pocket_tts_connection)
+        
         ui_on_startup_complete.addListener(self.finish_startup)
         ui_fetch_update_check_event.addListener(self._update_check_result)
+
+        ######### Pocket TTS ##########
+        row += 1
+        column = 0
+
+        label_tts = ctk.CTkLabel(self.parent, text="Pocket TTS", anchor="w", font=header_font)
+        label_tts.grid(row=row, column=column, padx=10, pady=(0, 10))
+        column += 1
+        self.pocket_model_conf_label = ctk.CTkLabel(self.parent, text="Pocket TTS Not Configured", text_color="red")
+        self.pocket_model_conf_label.grid(row=row, column=column, padx=10, pady=(0, 2))
+
+        # row += 1
+        column = 0
+        button_el = ctk.CTkButton(self.parent, height=30, text="Select Model", command=self._choose_pocket_model)
+        button_el.grid(row=row, column=column, padx=10, pady=(100, 10))
+        # row += 1
+        download_link_label = ctk.CTkLabel(self.parent, text="Click here to download the model", text_color="blue", cursor="hand2",anchor="w")
+        download_link_label.grid(row=row, column=column, padx=(10, 10), pady=(170, 2))
+        download_link_label.bind(
+            "<Button-1>",
+            lambda e: webbrowser.open("https://huggingface.co/kyutai/pocket-tts-without-voice-cloning/blob/main/tts_b6369a24.safetensors", new=0, autoraise=True),
+        )
+        # el_api_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
+        # column += 1
+        # el_voices_label = ctk.CTkLabel(self.parent, text="Pocket TTS Added Voices")
+        # el_voices_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
+        
+        column = 1
+        # row += 1
+        # self.el_api_key_var = ctk.StringVar(value=config.get(section="ELEVENLABS", option="api_key", fallback=""))
+        # el_api_key_entry = ctk.CTkEntry(
+        #     self.parent,
+        #     width=180,
+        #     height=30,
+        #     border_width=1,
+        #     fg_color="white",
+        #     placeholder_text="API Key",
+        #     text_color="black",
+        #     textvariable=self.el_api_key_var,
+        # )
+        # el_api_key_entry.configure(justify="center", show="*")
+        # el_api_key_entry.grid(row=row, column=column, padx=(20, 20), pady=(2, 20), sticky="n")
+
+
+        self.pocket_voices = CTkListbox(self.parent, width=450, height=200, command=self._on_voice_option_select_pocket)
+
+        column += 1
+        self.pocket_voices.grid(row=row, column=column, columnspan=3, pady=(100,10))
+        column += 3
+
+        self.add_pocket_v_button = ctk.CTkButton(self.parent, height=30, text="Add Voice", command=self.open_pocket_edit_popup)
+        self.add_pocket_v_button.grid(row=row, column=column, padx=10, pady=(108, 10), sticky="n")
+        self.del_pocket_v_button = ctk.CTkButton(
+            self.parent,
+            height=30,
+            text="Remove Voice",
+            fg_color="#b1363d",
+            hover_color="#772429",
+            command=self._delete_pocket_voice,
+        )
+        self.del_pocket_v_button.grid(row=row, column=column, padx=10, pady=(152, 10), sticky="n")
+        self.preview_pocket_v_button = ctk.CTkButton(
+            self.parent,
+            height=30,
+            text="Preview Voice",
+            command=self._preview_pocket_voice,
+        )
+        self.preview_pocket_v_button.grid(row=row, column=column, padx=10, pady=(298, 10), sticky="n")
 
     def _validate_el_warning_numeric(self, *data):
         val = self.el_warning_var.get()
@@ -596,6 +671,106 @@ class SettingsTab:
             if open_page:
                 webbrowser.open(value, new=2)
 
+    def _choose_pocket_model(self):
+        """Open file dialog to select a Pocket TTS model file."""
+        filename = ctk.filedialog.askopenfilename(
+            title="Select Pocket TTS Model", 
+            filetypes=[("Model Files", "*.safetensors"), ("All Files", "*.*")]
+        )
+        if filename:
+            # Save the model path to config
+            config = get_config("default")
+            config.set(section="POCKET_TTS", option="model_path", value=filename)
+            config.write_updates()
+            
+            # Update the UI label to show the selected model
+            model_name = os.path.basename(filename)
+            self.pocket_model_conf_label.configure(
+                text=f"Pocket TTS Model: {model_name}", 
+                text_color="green"
+            )
+            
+            # Trigger model reload
+            from chatdnd.events.tts_events import request_pocket_tts_connect
+            request_pocket_tts_connect.trigger()
+    
+    def _update_pocket_tts_settings(self):
+        client = get_tts(TTS_SOURCE.SOURCE_POCKET)
+        if client:
+            client.setup()
+            # self.pocket_model_var = client.get_model_path()
+            # self.pocket_model_label.configure(text=f"Model: {self.pocket_model_var}")
+
+    def _update_pocket_tts_connection(self, status: bool):
+        if status:
+            self.pocket_model_conf_label.configure(text="Pocket TTS Connected", text_color="green")
+            self._update_pocket_voice_list()
+            self.add_pocket_v_button.configure(state="normal")
+            if not self.startup:
+                ui_request_floating_notif.trigger(["Pocket TTS connected!", NotifyType.INFO, {"name": "pocket_tts_connect"}])
+                ui_remove_floating_notif.trigger(["pocket_tts_disconnect", "contains"])
+        else:
+            self.pocket_model_conf_label.configure(text="Pocket TTS Not Configured", text_color="red")
+            self.add_pocket_v_button.configure(state="disabled")
+            if self.pocket_voices.size():
+                self.pocket_voices.selection_clear()
+                while self.pocket_voices.size():
+                    self.pocket_voices.deactivate("END")
+                    self.pocket_voices.delete("END")
+            self.del_pocket_v_button.configure(state="disabled")
+            self.preview_pocket_v_button.configure(state="disabled")
+            self.parent.focus()
+            if not self.startup:
+                ui_request_floating_notif.trigger(["Pocket TTS disconnected!", NotifyType.WARNING, {"name": "pocket_tts_disconnect"}])
+                ui_remove_floating_notif.trigger(["pocket_tts_connect", "contains"])
+
+    def _on_voice_option_select_pocket(self, option):
+        if option:
+            self.preview_pocket_v_button.configure(state="normal")
+            if self.pocket_voices.size() > 1:
+                self.del_pocket_v_button.configure(state="normal")
+            else:
+                self.del_pocket_v_button.configure(state="disabled")
+        else:
+            self.del_pocket_v_button.configure(state="disabled")
+            self.preview_pocket_v_button.configure(state="disabled")
+
+    def _preview_pocket_voice(self, text: str = "Hello there. How are you?", voice_id: str = None):
+        option = self.pocket_voices.get()
+        if not option:
+            return
+        client = get_tts(TTS_SOURCE.SOURCE_POCKET)
+        if uid := client.get_voices()[option]:
+            from chatdnd.events.tts_events import on_pocket_tts_test_speak
+            on_pocket_tts_test_speak.trigger([text, uid])
+
+    def open_pocket_edit_popup(self, event=None):
+        AddPocketVoiceCard(self._update_pocket_voice_list)
+
+    def _update_pocket_voice_list(self):
+        client = get_tts(TTS_SOURCE.SOURCE_POCKET)
+        if self.pocket_voices.size():
+            self.pocket_voices.selection_clear()
+            while self.pocket_voices.size():
+                self.pocket_voices.deactivate("END")
+                self.pocket_voices.delete("END")
+
+        for k in client.get_voices().keys():  # pylint: disable=consider-iterating-dictionary
+            self.pocket_voices.insert("END", option=k)
+        self.del_pocket_v_button.configure(state="disabled")
+        self.preview_pocket_v_button.configure(state="disabled")
+    
+    def _delete_pocket_voice(self):
+        if self.pocket_voices.size() <= 1:
+            return
+        option = self.pocket_voices.get()
+        client = get_tts(TTS_SOURCE.SOURCE_POCKET)
+        result1 = None
+        if uid := client.get_voices()[option]:
+            run_coroutine_sync(remove_tts(voice_id=uid))
+            result1 = run_coroutine_sync(delete_voice(uid=uid, source=TTS_SOURCE.SOURCE_POCKET))
+        if result1:
+            self._update_pocket_voice_list()
 
 class AddVoiceCard(ctk.CTkToplevel):
     open_popup = None
@@ -640,5 +815,71 @@ class AddVoiceCard(ctk.CTkToplevel):
 
     def close_popup(self):
         AddVoiceCard.open_popup = None
+        self.update_list_callback()
+        self.destroy()
+
+
+class AddPocketVoiceCard(ctk.CTkToplevel):
+    open_popup = None
+
+    def __init__(self, update_list_callback: callable):
+        if AddPocketVoiceCard.open_popup is not None:
+            AddPocketVoiceCard.open_popup.focus_set()
+            return
+
+        super().__init__()
+        AddPocketVoiceCard.open_popup = self
+        self.update_list_callback = update_list_callback
+        self.title("Add new Pocket Voice")
+        self.geometry("400x400")
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self.close_popup)
+
+        self.attributes("-topmost", True)
+        self.create_widgets()
+
+    def create_widgets(self):
+        label1 = ctk.CTkLabel(self, text="Pocket Voice Name:")
+        label1.pack(pady=(20, 5))
+
+        self.voice_id_var = ctk.StringVar()
+        self.voice_id_input = ctk.CTkEntry(self, width=160, height=30, textvariable=self.voice_id_var)
+        self.voice_id_input.pack(pady=(10, 10))
+
+        self.label_warn = ctk.CTkLabel(self, text="", text_color="red")
+        self.label_warn.pack(pady=10)
+
+        self.save_button = ctk.CTkButton(self, text="Add", command=self.save_changes)
+        self.save_button.pack(pady=10)
+
+    def save_changes(self):
+        voice_name = self.voice_id_var.get().strip()
+        if not voice_name:
+            self.label_warn.configure(text="Please enter a voice name!")
+            return
+        
+        # For Pocket TTS, we need to select a WAV file to create the voice
+        filename = ctk.filedialog.askopenfilename(
+            title="Select WAV file for Pocket TTS voice", 
+            filetypes=[("WAV files", "*.wav")]
+        )
+        if not filename:
+            self.label_warn.configure(text="No file selected!")
+            return
+            
+        client = get_tts(TTS_SOURCE.SOURCE_POCKET)
+        if not client:
+            self.label_warn.configure(text="Pocket TTS not available!")
+            return
+            
+        # Create voice from WAV file
+        result = client.create_voice_from_wav(filename, voice_name)
+        if result:
+            self.close_popup()
+        else:
+            self.label_warn.configure(text="Failed to create voice from file!")
+
+    def close_popup(self):
+        AddPocketVoiceCard.open_popup = None
         self.update_list_callback()
         self.destroy()

@@ -4,15 +4,16 @@ from functools import lru_cache
 from tts.local_tts import LocalTTS
 from tts.elevenlabs_tts import ElevenLabsTTS
 from tts.streamelements_tts import StreamElementsTTS
+from tts.pocket_tts import PocketTTS
 from tts.tts import TTS
 from helpers.constants import TTS_SOURCE
 
 logger = getLogger("ChatDND")
 
-__all__ = ["LocalTTS", "ElevenLabsTTS", "StreamElementsTTS", 'TTS', "get_tts"]
+__all__ = ["LocalTTS", "ElevenLabsTTS", "StreamElementsTTS", "PocketTTS", 'TTS', "get_tts"]
 
 _tts_store_ = {}
-_tts_classes_ = [LocalTTS, ElevenLabsTTS, StreamElementsTTS]
+_tts_classes_ = [LocalTTS, ElevenLabsTTS, StreamElementsTTS, PocketTTS]
 
 # def initialize_tts():
 #     # Initialize once globally and import instances where needed
@@ -21,7 +22,7 @@ _tts_classes_ = [LocalTTS, ElevenLabsTTS, StreamElementsTTS]
 #             tts_instances[tts_cls.source_type] = tts_cls()
 
 @lru_cache(maxsize=None)
-def get_tts(name: TTS_SOURCE) -> LocalTTS | ElevenLabsTTS | StreamElementsTTS:
+def get_tts(name: TTS_SOURCE) -> LocalTTS | ElevenLabsTTS | StreamElementsTTS | PocketTTS | None:
     if not name:
         return None
     if name in _tts_store_:

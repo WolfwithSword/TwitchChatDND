@@ -7,3 +7,4 @@ class TTS_SOURCE(Enum): #pylint: disable=invalid-name
     SOURCE_LOCAL = "local"
     SOURCE_11L = "elevenlabs"
     SOURCE_SE = 'streamelements'
+    SOURCE_POCKET = 'pocket'
