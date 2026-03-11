@@ -242,12 +242,21 @@ class PocketTTS(TTS):
 
             # Accumulate samples for batching into network-friendly chunks
             accumulated_samples = []
-            target_chunk_samples = 12000  # 500ms at 24kHz - more reliable for browser decoding
+            target_chunk_samples = 12000  # 500ms at 24kHz - network chunk size
+            initial_buffer_samples = 72000  # 3 seconds at 24kHz - initial buffer to prevent clipping
+            has_initial_buffer = False
             chunk_count = 0
 
             for chunk_result in chunked_iterator:
                 # chunk_result is a list of floats for one Mimi frame
                 accumulated_samples.extend(chunk_result)
+
+                # Build initial buffer before sending first chunk
+                if not has_initial_buffer:
+                    if len(accumulated_samples) >= initial_buffer_samples:
+                        has_initial_buffer = True
+                        logger.debug(f"Chunked TTS: Initial buffer ready ({len(accumulated_samples)} samples)")
+                    continue
 
                 # Send chunk when we have enough samples
                 while len(accumulated_samples) >= target_chunk_samples:
@@ -276,6 +285,10 @@ class PocketTTS(TTS):
 
             # Send any remaining samples
             if accumulated_samples:
+                # If we never got enough for initial buffer, send everything as one chunk (short text)
+                if not has_initial_buffer:
+                    logger.debug(f"Chunked TTS: Short text, sending {len(accumulated_samples)} samples without buffering")
+                
                 chunk_bytes = self._float_samples_to_bytes(accumulated_samples)
                 header = create_wav_header(
                     self.sample_rate,
@@ -286,7 +299,7 @@ class PocketTTS(TTS):
 
                 duration = len(accumulated_samples) / self.sample_rate
                 chunk_count += 1
-                
+
                 logger.debug(f"Chunked TTS: Sending final chunk {chunk_count}, {len(accumulated_samples)} samples, {len(chunk_bytes)} bytes, {duration:.3f}s")
                 yield (header + chunk_bytes, duration)
             
