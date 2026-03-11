@@ -358,68 +358,51 @@ class SettingsTab:
         column = 0
 
         label_tts = ctk.CTkLabel(self.parent, text="Pocket TTS", anchor="w", font=header_font)
-        label_tts.grid(row=row, column=column, padx=10, pady=(0, 10))
+        label_tts.grid(row=row, column=column, padx=10, pady=(40, 10))
         column += 1
         self.pocket_model_conf_label = ctk.CTkLabel(self.parent, text="Pocket TTS Not Configured", text_color="red")
-        self.pocket_model_conf_label.grid(row=row, column=column, padx=10, pady=(0, 2))
+        self.pocket_model_conf_label.grid(row=row, column=column, padx=10, pady=(30, 2))
 
-        # row += 1
+        row += 1
         column = 0
         button_el = ctk.CTkButton(self.parent, height=30, text="Select Model", command=self._choose_pocket_model)
-        button_el.grid(row=row, column=column, padx=10, pady=(100, 10))
-        # row += 1
+        button_el.grid(row=row, column=column, padx=10, pady=(20, 10))
+        column += 1
         download_link_label = ctk.CTkLabel(self.parent, text="Click here to download the model", text_color="blue", cursor="hand2",anchor="w")
-        download_link_label.grid(row=row, column=column, padx=(10, 10), pady=(170, 2))
+        download_link_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
         download_link_label.bind(
             "<Button-1>",
             lambda e: webbrowser.open("https://huggingface.co/kyutai/pocket-tts-without-voice-cloning/blob/main/tts_b6369a24.safetensors", new=0, autoraise=True),
         )
-        # el_api_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
-        # column += 1
-        # el_voices_label = ctk.CTkLabel(self.parent, text="Pocket TTS Added Voices")
-        # el_voices_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
-        
-        column = 1
-        # row += 1
-        # self.el_api_key_var = ctk.StringVar(value=config.get(section="ELEVENLABS", option="api_key", fallback=""))
-        # el_api_key_entry = ctk.CTkEntry(
-        #     self.parent,
-        #     width=180,
-        #     height=30,
-        #     border_width=1,
-        #     fg_color="white",
-        #     placeholder_text="API Key",
-        #     text_color="black",
-        #     textvariable=self.el_api_key_var,
-        # )
-        # el_api_key_entry.configure(justify="center", show="*")
-        # el_api_key_entry.grid(row=row, column=column, padx=(20, 20), pady=(2, 20), sticky="n")
-
-
-        self.pocket_voices = CTkListbox(self.parent, width=450, height=200, command=self._on_voice_option_select_pocket)
-
         column += 1
-        self.pocket_voices.grid(row=row, column=column, columnspan=3, pady=(100,10))
+        pocket_voices_label = ctk.CTkLabel(self.parent, text="Pocket TTS Added Voices")
+        pocket_voices_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
+
+        column = 1
+        row += 1
+        self.pocket_voices = CTkListbox(self.parent, width=450, height=200, command=self._on_voice_option_select_pocket)
+        column += 1
+        self.pocket_voices.grid(row=row, column=column, columnspan=3, pady=(2, 10))
         column += 3
 
         self.add_pocket_v_button = ctk.CTkButton(self.parent, height=30, text="Add Voice", command=self.open_pocket_edit_popup)
-        self.add_pocket_v_button.grid(row=row, column=column, padx=10, pady=(108, 10), sticky="n")
+        self.add_pocket_v_button.grid(row=row, column=column, padx=10, pady=(2, 10), sticky="n")
         self.del_pocket_v_button = ctk.CTkButton(
             self.parent,
             height=30,
             text="Remove Voice",
             fg_color="#b1363d",
-            hover_color="#772429",
+            hover_color="#b1363d",
             command=self._delete_pocket_voice,
         )
-        self.del_pocket_v_button.grid(row=row, column=column, padx=10, pady=(152, 10), sticky="n")
+        self.del_pocket_v_button.grid(row=row, column=column, padx=10, pady=(52, 10), sticky="n")
         self.preview_pocket_v_button = ctk.CTkButton(
             self.parent,
             height=30,
             text="Preview Voice",
             command=self._preview_pocket_voice,
         )
-        self.preview_pocket_v_button.grid(row=row, column=column, padx=10, pady=(298, 10), sticky="n")
+        self.preview_pocket_v_button.grid(row=row, column=column, padx=10, pady=(168, 10), sticky="n")
 
         # Trigger Pocket TTS connection check after UI is ready
         request_pocket_tts_connect.trigger()
@@ -693,7 +676,6 @@ class SettingsTab:
                 text=f"Pocket TTS Model: {model_name}", 
                 text_color="green"
             )
-            
             # Trigger model reload
             from chatdnd.events.tts_events import request_pocket_tts_connect
             request_pocket_tts_connect.trigger()
@@ -850,32 +832,44 @@ class AddPocketVoiceCard(ctk.CTkToplevel):
         self.voice_id_input = ctk.CTkEntry(self, width=160, height=30, textvariable=self.voice_id_var)
         self.voice_id_input.pack(pady=(10, 10))
 
+        self.file_path_var = ctk.StringVar()
+        self.file_path_label = ctk.CTkLabel(self, text="", text_color="gray", anchor="w")
+        self.file_path_label.pack(pady=(10, 10), fill="x", padx=20)
+
+        self.pick_file_button = ctk.CTkButton(self, text="Pick WAV Voice File to Clone", command=self.pick_wav_file)
+        self.pick_file_button.pack(pady=(10, 10))
+
         self.label_warn = ctk.CTkLabel(self, text="", text_color="red")
         self.label_warn.pack(pady=10)
 
         self.save_button = ctk.CTkButton(self, text="Add", command=self.save_changes)
         self.save_button.pack(pady=10)
 
+    def pick_wav_file(self):
+        filename = ctk.filedialog.askopenfilename(
+            title="Select WAV file for Pocket TTS voice",
+            filetypes=[("WAV files", "*.wav")]
+        )
+        if filename:
+            self.file_path_var.set(filename)
+            self.file_path_label.configure(text=filename, text_color="green")
+        else:
+            self.file_path_label.configure(text="", text_color="gray")
+
     def save_changes(self):
         voice_name = self.voice_id_var.get().strip()
         if not voice_name:
             self.label_warn.configure(text="Please enter a voice name!")
             return
-        
-        # For Pocket TTS, we need to select a WAV file to create the voice
-        filename = ctk.filedialog.askopenfilename(
-            title="Select WAV file for Pocket TTS voice", 
-            filetypes=[("WAV files", "*.wav")]
-        )
+
+        filename = self.file_path_var.get().strip()
         if not filename:
-            self.label_warn.configure(text="No file selected!")
+            self.label_warn.configure(text="Please pick a WAV file!")
             return
-            
         client = get_tts(TTS_SOURCE.SOURCE_POCKET)
         if not client:
             self.label_warn.configure(text="Pocket TTS not available!")
             return
-            
         # Create voice from WAV file
         result = client.create_voice_from_wav(filename, voice_name)
         if result:

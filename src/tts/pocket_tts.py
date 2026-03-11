@@ -242,8 +242,8 @@ class PocketTTS(TTS):
 
             # Accumulate samples for batching into network-friendly chunks
             accumulated_samples = []
-            target_chunk_samples = 12000  # 500ms at 24kHz - network chunk size
-            initial_buffer_samples = 72000  # 3 seconds at 24kHz - initial buffer to prevent clipping
+            target_chunk_samples = 18000  # 0.75 seconds at 24kHz - network chunk size
+            initial_buffer_samples = 12000  # 0.5 seconds at 24kHz - initial buffer to prevent clipping
             has_initial_buffer = False
             chunk_count = 0
 
