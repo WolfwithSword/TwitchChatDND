@@ -343,12 +343,13 @@ class SettingsTab:
         on_elevenlabs_subscription_update.addListener(self._update_elevenlabs_usage)
         request_elevenlabs_connect.trigger()
         
-        # Pocket TTS event listeners
+        # Pocket TTS event listeners (will trigger after UI elements are created)
         from chatdnd.events.tts_events import (
             on_pocket_tts_connect,
+            request_pocket_tts_connect,
         )
         on_pocket_tts_connect.addListener(self._update_pocket_tts_connection)
-        
+
         ui_on_startup_complete.addListener(self.finish_startup)
         ui_fetch_update_check_event.addListener(self._update_check_result)
 
@@ -419,6 +420,9 @@ class SettingsTab:
             command=self._preview_pocket_voice,
         )
         self.preview_pocket_v_button.grid(row=row, column=column, padx=10, pady=(298, 10), sticky="n")
+
+        # Trigger Pocket TTS connection check after UI is ready
+        request_pocket_tts_connect.trigger()
 
     def _validate_el_warning_numeric(self, *data):
         val = self.el_warning_var.get()
