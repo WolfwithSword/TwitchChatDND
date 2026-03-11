@@ -148,15 +148,31 @@ class PocketTTS(TTS):
         # Pack as little-endian 16-bit integers
         return struct.pack('<' + 'h' * len(scaled), *scaled)
 
-    async def get_stream(self, text="Hello World!", voice_id: str = None):
-        """Generate audio stream from text using Pocket TTS."""
+    async def get_stream(self, text="Hello World!", voice_id: str = None, use_chunked: bool = True):
+        """Generate audio stream from text using Pocket TTS.
+        
+        Args:
+            text: Text to synthesize
+            voice_id: Path to voice file (.wav or .safetensors)
+            use_chunked: If True, use streaming generation (lower latency). 
+                        If False, generate full audio first then stream.
+                        Default is True for Pocket TTS.
+        """
         if not voice_id or not self.client:
             yield None, None
+            return
 
+        if use_chunked:
+            async for chunk, duration in self._get_stream_chunked(text, voice_id):
+                yield (chunk, duration)
+        else:
+            async for chunk, duration in self._get_stream_full(text, voice_id):
+                yield (chunk, duration)
+
+    async def _get_stream_full(self, text="Hello World!", voice_id: str = None):
+        """Generate full audio first, then stream in chunks (legacy behavior)."""
         try:
             # Generate full audio using Pocket TTS
-            audio_samples = await asyncio.to_thread(self.client.generate, text, voice_id)
-            # audio_bytes = self._float_samples_to_bytes(audio_samples)
             audio_bytes = await asyncio.get_event_loop().run_in_executor(
                 tts_executor,
                 generate_audio_process,
@@ -200,6 +216,86 @@ class PocketTTS(TTS):
 
         except Exception as e:
             logger.error(f"Pocket TTS streaming failed: {e}")
+            yield None, None
+
+    async def _get_stream_chunked(self, text="Hello World!", voice_id: str = None):
+        """Generate audio stream using chunked generation (lower latency).
+        
+        Uses the Pocket TTS streaming API to generate audio frames as they're ready,
+        rather than waiting for the full audio to be generated first.
+        
+        Each chunk is a complete WAV file for independent browser decoding.
+        
+        Yields:
+            Tuple of (bytes, float): WAV chunk bytes and duration in seconds
+        """
+        if not voice_id or not self.client:
+            yield None, None
+            return
+
+        try:
+            # Use the chunked generation API from the bindings
+            # This returns an iterator of float chunks (one Mimi frame per chunk)
+            chunked_iterator = await asyncio.to_thread(
+                self.client.generate_chunked, text, voice_id
+            )
+
+            # Accumulate samples for batching into network-friendly chunks
+            accumulated_samples = []
+            target_chunk_samples = 12000  # 500ms at 24kHz - more reliable for browser decoding
+            chunk_count = 0
+
+            for chunk_result in chunked_iterator:
+                # chunk_result is a list of floats for one Mimi frame
+                accumulated_samples.extend(chunk_result)
+
+                # Send chunk when we have enough samples
+                while len(accumulated_samples) >= target_chunk_samples:
+                    frame_samples = accumulated_samples[:target_chunk_samples]
+                    accumulated_samples = accumulated_samples[target_chunk_samples:]
+
+                    # Convert to 16-bit PCM bytes
+                    chunk_bytes = self._float_samples_to_bytes(frame_samples)
+
+                    # Create complete WAV header for this chunk
+                    # Each chunk must be independently decodable by the browser
+                    header = create_wav_header(
+                        self.sample_rate,
+                        self.bits_per_sample,
+                        self.num_channels,
+                        len(chunk_bytes)
+                    )
+
+                    # Calculate duration
+                    duration = len(frame_samples) / self.sample_rate
+                    chunk_count += 1
+                    
+                    logger.debug(f"Chunked TTS: Sending chunk {chunk_count}, {len(frame_samples)} samples, {len(chunk_bytes)} bytes, {duration:.3f}s")
+
+                    yield (header + chunk_bytes, duration)
+
+            # Send any remaining samples
+            if accumulated_samples:
+                chunk_bytes = self._float_samples_to_bytes(accumulated_samples)
+                header = create_wav_header(
+                    self.sample_rate,
+                    self.bits_per_sample,
+                    self.num_channels,
+                    len(chunk_bytes)
+                )
+
+                duration = len(accumulated_samples) / self.sample_rate
+                chunk_count += 1
+                
+                logger.debug(f"Chunked TTS: Sending final chunk {chunk_count}, {len(accumulated_samples)} samples, {len(chunk_bytes)} bytes, {duration:.3f}s")
+                yield (header + chunk_bytes, duration)
+            
+            logger.info(f"Chunked TTS: Finished streaming {chunk_count} chunks for '{text[:50]}...'")
+
+        except Exception as e:
+            logger.error(f"Pocket TTS chunked streaming failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             yield None, None
 
     def create_voice_from_wav(self, wav_path: str, voice_name: str = None) -> dict | None:
