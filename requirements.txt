@@ -16,3 +16,4 @@ alembic==1.16.1
 packaging==25.0
 audioop-lts==0.2.1
 pydub==0.25.1
+https://github.com/arjunindia/pocket-tts-bind/releases/download/v0.1.1/pocket_tts_bindings-0.1.1-cp313-cp313-win_amd64.whl ; platform_system == "Windows" and python_version == "3.13"
