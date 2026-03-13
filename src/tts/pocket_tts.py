@@ -8,7 +8,7 @@ import pocket_tts_bindings
 
 from tts.tts import TTS, create_wav_header
 from helpers.instance_manager import get_config
-from helpers.utils import run_coroutine_sync, try_get_cache
+from helpers.utils import run_coroutine_sync
 from helpers.constants import TTS_SOURCE
 from custom_logger.logger import logger
 
@@ -18,15 +18,12 @@ from chatdnd.events.tts_events import (
     on_pocket_tts_test_speak
 )
 
-from data.voices import _upsert_voice, fetch_voices, get_all_voice_ids, delete_voice
-from data.member import remove_tts
-import threading
+from data.voices import _upsert_voice, fetch_voices
 from elevenlabs import play
 
 
 # Pocket TTS specific settings
 POCKET_TTS_SAMPLE_RATE = 24000  # Pocket TTS generates at 24kHz
-MODEL_VARIANT = "b6369a24"
 
 
 class PocketTTS(TTS):
@@ -116,7 +113,8 @@ class PocketTTS(TTS):
                 # Do not attempt to load if path is invalid
                 logger.warning("Pocket TTS model path is not set or does not exist. Skipping model loading.")
                 on_pocket_tts_connect.trigger([False])
-            
+                return
+
             on_pocket_tts_connect.trigger([True])
         except Exception as e:
             logger.error(f"❌ Failed to load Pocket TTS model: {e}")
@@ -358,7 +356,7 @@ class PocketTTS(TTS):
             return None
 
         voice_name = Path(voice_id).stem
-        
+
         if run_sync_always:
             run_coroutine_sync(_upsert_voice(name=voice_name, uid=voice_id, source=self.source_type))
         elif asyncio.get_event_loop():
@@ -409,7 +407,6 @@ class PocketTTS(TTS):
             logger.warning("Pocket TTS: No voice ID or client available for test speak")
             return
 
-        loop = asyncio.get_event_loop()
         async def run():
             audio_samples = await asyncio.to_thread(
                 self.client.generate, text, voice_id
@@ -426,34 +423,3 @@ class PocketTTS(TTS):
             play(iter([header + audio_bytes]))
 
         asyncio.create_task(run())
-
-        # Handle WAV file conversion using the new function
-        # voice_path = voice_id
-
-        # def preview_audio_th():
-        #     try:
-        #         # Generate audio
-        #         audio_samples = self.client.generate(text, voice_path)
-        #         audio_bytes = self._float_samples_to_bytes(audio_samples)
-
-        #         # Create WAV header
-        #         header = create_wav_header(
-        #             self.sample_rate,
-        #             self.bits_per_sample,
-        #             self.num_channels,
-        #             len(audio_bytes)
-        #         )
-
-        #         # Combine header and audio data
-        #         full_audio = header + audio_bytes
-
-        #         # Use elevenlabs play for playback - pass as iterator
-        #         play(iter([full_audio]))
-
-        #     except Exception as e:
-        #         logger.error(f"Pocket TTS test speak failed: {e}")
-
-        # # Run in separate thread to avoid blocking UI
-        # thread = threading.Thread(target=preview_audio_th)
-        # thread.daemon = True
-        # thread.start()

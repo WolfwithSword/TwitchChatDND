@@ -661,7 +661,7 @@ class SettingsTab:
     def _choose_pocket_model(self):
         """Open file dialog to select a Pocket TTS model file."""
         filename = ctk.filedialog.askopenfilename(
-            title="Select Pocket TTS Model", 
+            title="Select Pocket TTS Model",
             filetypes=[("Model Files", "*.safetensors"), ("All Files", "*.*")]
         )
         if filename:
@@ -669,23 +669,16 @@ class SettingsTab:
             config = get_config("default")
             config.set(section="POCKET_TTS", option="model_path", value=filename)
             config.write_updates()
-            
+
             # Update the UI label to show the selected model
             model_name = os.path.basename(filename)
             self.pocket_model_conf_label.configure(
-                text=f"Pocket TTS Model: {model_name}", 
+                text=f"Pocket TTS Model: {model_name}",
                 text_color="green"
             )
             # Trigger model reload
             from chatdnd.events.tts_events import request_pocket_tts_connect
             request_pocket_tts_connect.trigger()
-    
-    def _update_pocket_tts_settings(self):
-        client = get_tts(TTS_SOURCE.SOURCE_POCKET)
-        if client:
-            client.setup()
-            # self.pocket_model_var = client.get_model_path()
-            # self.pocket_model_label.configure(text=f"Model: {self.pocket_model_var}")
 
     def _update_pocket_tts_connection(self, status: bool):
         if status:
