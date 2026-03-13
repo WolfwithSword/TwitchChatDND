@@ -357,7 +357,7 @@ class SettingsTab:
         row += 1
         column = 0
 
-        label_tts = ctk.CTkLabel(self.parent, text="Pocket TTS", anchor="w", font=header_font)
+        label_tts = ctk.CTkLabel(self.parent, text="Pocket TTS (Local)", anchor="w", font=header_font)
         label_tts.grid(row=row, column=column, padx=10, pady=(40, 10))
         column += 1
         self.pocket_model_conf_label = ctk.CTkLabel(self.parent, text="Pocket TTS Not Configured", text_color="red")
@@ -368,11 +368,11 @@ class SettingsTab:
         button_el = ctk.CTkButton(self.parent, height=30, text="Select Model", command=self._choose_pocket_model)
         button_el.grid(row=row, column=column, padx=10, pady=(20, 10))
         column += 1
-        download_link_label = ctk.CTkLabel(self.parent, text="Click here to download the model", text_color="blue", cursor="hand2",anchor="w")
+        download_link_label = ctk.CTkLabel(self.parent, text="Click here to see how to setup Pocket TTS", text_color="blue", cursor="hand2",anchor="w")
         download_link_label.grid(row=row, column=column, padx=(10, 10), pady=(10, 2))
         download_link_label.bind(
             "<Button-1>",
-            lambda e: webbrowser.open("https://huggingface.co/kyutai/pocket-tts-without-voice-cloning/blob/main/tts_b6369a24.safetensors", new=0, autoraise=True),
+            lambda e: webbrowser.open("https://github.com/WolfwithSword/TwitchChatDND/wiki/Configuration#pocket-tts", new=0, autoraise=True),
         )
         column += 1
         pocket_voices_label = ctk.CTkLabel(self.parent, text="Pocket TTS Added Voices")
