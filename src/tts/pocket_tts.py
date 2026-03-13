@@ -2,7 +2,9 @@ import asyncio
 import os
 import glob
 import struct
+import threading
 from pathlib import Path
+from queue import Queue as SyncQueue
 
 import pocket_tts_bindings
 
@@ -197,12 +199,9 @@ class PocketTTS(TTS):
 
     async def _get_stream_chunked(self, text="Hello World!", voice_id: str = None):
         """Generate audio stream using chunked generation (lower latency).
-        
         Uses the Pocket TTS streaming API to generate audio frames as they're ready,
         rather than waiting for the full audio to be generated first.
-        
         Each chunk is a complete WAV file for independent browser decoding.
-        
         Yields:
             Tuple of (bytes, float): WAV chunk bytes and duration in seconds
         """
@@ -210,13 +209,18 @@ class PocketTTS(TTS):
             yield None, None
             return
 
+        queue = SyncQueue()
+        def generate_frames():
+            try:
+                chunked_iterator = self.client.generate_chunked(text, voice_id)
+                for chunk_result in chunked_iterator:
+                    queue.put(('frame', chunk_result))
+                queue.put(('done', None))
+            except Exception as e:
+                queue.put(('error', e))
+        thread = threading.Thread(target=generate_frames, daemon=True)
+        thread.start()
         try:
-            # Use the chunked generation API from the bindings
-            # This returns an iterator of float chunks (one Mimi frame per chunk)
-            chunked_iterator = await asyncio.to_thread(
-                self.client.generate_chunked, text, voice_id
-            )
-
             # Accumulate samples for batching into network-friendly chunks
             accumulated_samples = []
             target_chunk_samples = 18000  # 0.75 seconds at 24kHz - network chunk size
@@ -224,48 +228,53 @@ class PocketTTS(TTS):
             has_initial_buffer = False
             chunk_count = 0
 
-            for chunk_result in chunked_iterator:
-                # chunk_result is a list of floats for one Mimi frame
-                accumulated_samples.extend(chunk_result)
+            while True:
+                event_type, data = await asyncio.to_thread(queue.get)
+                if event_type == 'error':
+                    raise data
+                elif event_type == 'done':
+                    break
+                elif event_type == 'frame':
+                    chunk_result = data
+                    # chunk_result is a list of floats for one Mimi frame
+                    accumulated_samples.extend(chunk_result)
 
-                # Build initial buffer before sending first chunk
-                if not has_initial_buffer:
-                    if len(accumulated_samples) >= initial_buffer_samples:
-                        has_initial_buffer = True
-                        logger.debug(f"Chunked TTS: Initial buffer ready ({len(accumulated_samples)} samples)")
-                    continue
+                    # Build initial buffer before sending first chunk
+                    if not has_initial_buffer:
+                        if len(accumulated_samples) >= initial_buffer_samples:
+                            has_initial_buffer = True
+                            logger.debug(f"Chunked TTS: Initial buffer ready ({len(accumulated_samples)} samples)")
+                        continue
 
-                # Send chunk when we have enough samples
-                while len(accumulated_samples) >= target_chunk_samples:
-                    frame_samples = accumulated_samples[:target_chunk_samples]
-                    accumulated_samples = accumulated_samples[target_chunk_samples:]
+                    # Send chunk when we have enough samples
+                    while len(accumulated_samples) >= target_chunk_samples:
+                        frame_samples = accumulated_samples[:target_chunk_samples]
+                        accumulated_samples = accumulated_samples[target_chunk_samples:]
 
-                    # Convert to 16-bit PCM bytes
-                    chunk_bytes = self._float_samples_to_bytes(frame_samples)
+                        # Convert to 16-bit PCM bytes
+                        chunk_bytes = self._float_samples_to_bytes(frame_samples)
 
-                    # Create complete WAV header for this chunk
-                    # Each chunk must be independently decodable by the browser
-                    header = create_wav_header(
-                        self.sample_rate,
-                        self.bits_per_sample,
-                        self.num_channels,
-                        len(chunk_bytes)
-                    )
+                        # Create complete WAV header for this chunk
+                        # Each chunk must be independently decodable by the browser
+                        header = create_wav_header(
+                            self.sample_rate,
+                            self.bits_per_sample,
+                            self.num_channels,
+                            len(chunk_bytes)
+                        )
 
-                    # Calculate duration
-                    duration = len(frame_samples) / self.sample_rate
-                    chunk_count += 1
-                    
-                    logger.debug(f"Chunked TTS: Sending chunk {chunk_count}, {len(frame_samples)} samples, {len(chunk_bytes)} bytes, {duration:.3f}s")
+                        # Calculate duration
+                        duration = len(frame_samples) / self.sample_rate
+                        chunk_count += 1
+                        logger.debug(f"Chunked TTS: Sending chunk {chunk_count}, {len(frame_samples)} samples, {len(chunk_bytes)} bytes, {duration:.3f}s")
 
-                    yield (header + chunk_bytes, duration)
+                        yield (header + chunk_bytes, duration)
 
             # Send any remaining samples
             if accumulated_samples:
                 # If we never got enough for initial buffer, send everything as one chunk (short text)
                 if not has_initial_buffer:
                     logger.debug(f"Chunked TTS: Short text, sending {len(accumulated_samples)} samples without buffering")
-                
                 chunk_bytes = self._float_samples_to_bytes(accumulated_samples)
                 header = create_wav_header(
                     self.sample_rate,
@@ -279,7 +288,6 @@ class PocketTTS(TTS):
 
                 logger.debug(f"Chunked TTS: Sending final chunk {chunk_count}, {len(accumulated_samples)} samples, {len(chunk_bytes)} bytes, {duration:.3f}s")
                 yield (header + chunk_bytes, duration)
-            
             logger.info(f"Chunked TTS: Finished streaming {chunk_count} chunks for '{text[:50]}...'")
 
         except Exception as e:
