@@ -1,7 +1,7 @@
 """Add pocket to sources constraint
 
-Revision ID: add_pocket
-Revises: 85bfff5ba6a6
+Revision ID: f4734b5bb803
+Revises: a9f202a7076a
 Create Date: 2026-03-02
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "add_pocket"
+revision: str = "f4734b5bb803"
 down_revision: Union[str, None] = "85bfff5ba6a6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

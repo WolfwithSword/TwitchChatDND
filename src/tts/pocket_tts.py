@@ -1,10 +1,8 @@
 import asyncio
-import threading
 import os
 import glob
 import struct
 from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor
 
 import pocket_tts_bindings
 
@@ -29,22 +27,6 @@ from elevenlabs import play
 # Pocket TTS specific settings
 POCKET_TTS_SAMPLE_RATE = 24000  # Pocket TTS generates at 24kHz
 MODEL_VARIANT = "b6369a24"
-
-tts_executor = ProcessPoolExecutor(max_workers=1)
-def generate_audio_process(model_path, text, voice_id):
-    import pocket_tts_bindings
-
-    model = pocket_tts_bindings.PyTTSModel.load_from_paths(
-        model_path,
-        device="cpu"
-    )
-
-    samples = model.generate(text, voice_id)
-
-    # Convert to bytes here to reduce IPC cost
-    import struct
-    scaled = [max(-32768, min(32767, int(s * 32767))) for s in samples]
-    return struct.pack('<' + 'h' * len(scaled), *scaled)
 
 
 class PocketTTS(TTS):
@@ -173,13 +155,10 @@ class PocketTTS(TTS):
         """Generate full audio first, then stream in chunks (legacy behavior)."""
         try:
             # Generate full audio using Pocket TTS
-            audio_bytes = await asyncio.get_event_loop().run_in_executor(
-                tts_executor,
-                generate_audio_process,
-                self.model_path,
-                text,
-                voice_id
+            audio_bytes = await asyncio.to_thread(
+                self.client.generate, text, voice_id
             )
+            audio_bytes = self._float_samples_to_bytes(audio_bytes)
 
             if not audio_bytes:
                 yield None, None
@@ -429,16 +408,13 @@ class PocketTTS(TTS):
         if not voice_id or not self.client:
             logger.warning("Pocket TTS: No voice ID or client available for test speak")
             return
-        
+
         loop = asyncio.get_event_loop()
         async def run():
-            audio_bytes = await loop.run_in_executor(
-                tts_executor,
-                generate_audio_process,
-                self.model_path,
-                text,
-                voice_id
+            audio_samples = await asyncio.to_thread(
+                self.client.generate, text, voice_id
             )
+            audio_bytes = self._float_samples_to_bytes(audio_samples)
 
             header = create_wav_header(
                 self.sample_rate,
