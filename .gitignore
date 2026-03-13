@@ -5,6 +5,7 @@ config.ini
 logs/
 *.db-journal
 .vscode/
+voices/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
