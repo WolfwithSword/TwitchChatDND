@@ -99,7 +99,7 @@ class PocketTTS(TTS):
                             attempt_path = filename
                         
                         logger.debug(f"Attempt {i+1}: Trying path: {attempt_path}")
-                        self.client = pocket_tts_bindings.PyTTSModel.load_from_paths(attempt_path,device="cpu")
+                        self.client = pocket_tts_bindings.PyTTSModel.load_from_paths(attempt_path,device="cpu",temp=0.8,lsd_decode_steps=5,eos_threshold=-3.5,noise_clamp=1.0)
                         self.model_path = attempt_path
                         logger.info(f"✅ Pocket TTS model loaded successfully (attempt {i+1})")
                         break
