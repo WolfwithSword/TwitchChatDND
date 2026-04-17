@@ -139,10 +139,24 @@
         let reconnectInterval = 5000;
         let reconnectTimeout = null;
 
+        let compressor;
+        let globalGain;
+
         function initializeAudioContext() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 console.log("AudioContext initialized");
+
+                compressor = audioContext.createDynamicsCompressor();
+                compressor.threshold.setValueAtTime(-24, audioContext.currentTime);
+                compressor.knee.setValueAtTime(30, audioContext.currentTime);
+                compressor.ratio.setValueAtTime(12, audioContext.currentTime);
+                compressor.attack.setValueAtTime(0.003, audioContext.currentTime);
+                compressor.release.setValueAtTime(0.25, audioContext.currentTime);
+                globalGain = audioContext.createGain();
+                globalGain.gain.setValueAtTime(1.5, audioContext.currentTime);
+                compressor.connect(globalGain);
+                globalGain.connect(audioContext.destination);
             }
         }
 
@@ -231,7 +245,7 @@
                 const audioBuffer = audioQueue.shift();
                 const source = audioContext.createBufferSource();
                 source.buffer = audioBuffer;
-                source.connect(audioContext.destination);
+                source.connect(compressor);
                 source.onended = () => {
                     isPlaying = false;
                     if (audioQueue.length > 0) {
